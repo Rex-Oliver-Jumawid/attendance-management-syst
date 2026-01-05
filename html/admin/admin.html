@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Dashboard - Church Attendance</title>
+
+    <link
+      rel="apple-touch-icon"
+      sizes="180x180"
+      href="../../favicon/apple-touch-icon.png"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="32x32"
+      href="../../favicon/favicon-32x32.png"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="16x16"
+      href="../../favicon/favicon-16x16.png"
+    />
+    <link rel="manifest" href="../../favicon/site.webmanifest" />
+
+    <link rel="stylesheet" href="../../css/inside.css" />
+    <link rel="stylesheet" href="../../css/admin/admin-dashboard.css" />
+  </head>
+  <body>
+    <nav>
+      <div class="sidebar-container">
+        <div class="brand-container">
+          <img
+            src="../../images/cordium-white.svg"
+            class="cordium-logo"
+            alt="cordium-logo"
+          />
+        </div>
+
+        <div class="links-container">
+          <a href="#home-section" class="nav-link active">
+            <img src="../../images/icons/home.png" class="nav-link-img" />Home
+          </a>
+          <a href="#schedules-section" class="nav-link">
+            <img src="../../images/icons/scan.png" class="nav-link-img" />Mass
+            Schedules
+          </a>
+          <a href="#users-section" class="nav-link">
+            <img
+              src="../../images/icons/user (2).png"
+              class="nav-link-img"
+            />Users
+          </a>
+          <a href="#moderators-section" class="nav-link">
+            <img
+              src="../../images/icons/moderator.png"
+              class="nav-link-img"
+            />Moderators
+          </a>
+          <a href="#reports-section" class="nav-link">
+            <img
+              src="../../images/icons/report.png"
+              class="nav-link-img"
+            />Reports
+          </a>
+          <a href="#profile-section" class="nav-link">
+            <img
+              src="../../images/icons/user.png"
+              class="nav-link-img"
+            />Profile
+          </a>
+          <a href="#" id="logoutBtn" class="nav-link">
+            <img
+              src="../../images/icons/logout.png"
+              class="nav-link-img"
+            />Logout
+          </a>
+        </div>
+
+        <div class="profile-container">
+          <p>Welcome, <span id="userName">Admin</span></p>
+          <br />
+          <small id="userRole">ADMIN</small>
+        </div>
+      </div>
+    </nav>
+
+    <div class="main-content">
+      <!-- Home Section -->
+      <section id="home-section" class="home-section">
+        <h1>Admin Dashboard</h1>
+        <p>Manage mass schedules, users, and system settings</p>
+
+        <div class="stats-grid" id="adminStats">
+          <div class="stat-card">
+            <h3 id="totalUsers">0</h3>
+            <p>Total Users</p>
+          </div>
+          <div class="stat-card">
+            <h3 id="totalModerators">0</h3>
+            <p>Moderators</p>
+          </div>
+          <div class="stat-card">
+            <h3 id="totalSchedules">0</h3>
+            <p>Mass Schedules</p>
+          </div>
+          <div class="stat-card">
+            <h3 id="activeSchedules">0</h3>
+            <p>Active Schedules</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Mass Schedules Section -->
+      <section
+        id="schedules-section"
+        class="schedules-section"
+        style="display: none"
+      >
+        <h2>Mass Schedules</h2>
+        <p>
+          Create and manage mass schedules for automatic attendance tracking
+        </p>
+
+        <button
+          id="createScheduleBtn"
+          class="btn-primary"
+          style="margin-bottom: 20px"
+        >
+          + Create New Schedule
+        </button>
+
+        <!-- Create/Edit Schedule Form -->
+        <div id="scheduleForm" style="display: none">
+          <div class="form-container" id="scheduleFormContainer">
+            <h3 id="formTitle">Create New Mass Schedule</h3>
+            <form id="massScheduleForm">
+              <input type="hidden" id="scheduleId" />
+
+              <div class="form-group">
+                <label for="scheduleName">Schedule Name *</label>
+                <input
+                  type="text"
+                  id="scheduleName"
+                  placeholder="e.g., Sunday Morning Mass"
+                  required
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="massType">Mass Type *</label>
+                <select id="massType" required>
+                  <option value="">-- Select Type --</option>
+                  <option value="Sunday Mass">Sunday Mass</option>
+                  <option value="Weekday Mass">Weekday Mass</option>
+                  <option value="Special Mass">Special Mass</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="scheduleType">Schedule Type *</label>
+                <select id="scheduleType" required>
+                  <option value="recurring">Recurring (Weekly)</option>
+                  <option value="specific">Specific Date</option>
+                </select>
+              </div>
+
+              <!-- Recurring Schedule Options -->
+              <div class="form-group" id="dayOfWeekGroup">
+                <label>Days of Week *</label>
+                <div class="checkbox-group">
+                  <label
+                    ><input type="checkbox" name="dayOfWeek" value="0" />
+                    Sunday</label
+                  >
+                  <label
+                    ><input type="checkbox" name="dayOfWeek" value="1" />
+                    Monday</label
+                  >
+                  <label
+                    ><input type="checkbox" name="dayOfWeek" value="2" />
+                    Tuesday</label
+                  >
+                  <label
+                    ><input type="checkbox" name="dayOfWeek" value="3" />
+                    Wednesday</label
+                  >
+                  <label
+                    ><input type="checkbox" name="dayOfWeek" value="4" />
+                    Thursday</label
+                  >
+                  <label
+                    ><input type="checkbox" name="dayOfWeek" value="5" />
+                    Friday</label
+                  >
+                  <label
+                    ><input type="checkbox" name="dayOfWeek" value="6" />
+                    Saturday</label
+                  >
+                </div>
+              </div>
+
+              <!-- Specific Date Options -->
+              <div
+                class="form-group"
+                id="specificDateGroup"
+                style="display: none"
+              >
+                <label for="specificDate">Specific Date *</label>
+                <input type="date" id="specificDate" />
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="startTime">Start Time *</label>
+                  <input type="time" id="startTime" required />
+                </div>
+                <div class="form-group">
+                  <label for="endTime">End Time *</label>
+                  <input type="time" id="endTime" required />
+                </div>
+              </div>
+
+              <div class="form-actions">
+                <button type="submit" class="btn-primary">Save Schedule</button>
+                <button type="button" class="btn-secondary" id="cancelBtn">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Schedules List -->
+        <div class="schedules-list" id="schedulesList">
+          <p>Loading schedules...</p>
+        </div>
+      </section>
+
+      <!-- Users Section -->
+      <section id="users-section" class="users-section" style="display: none">
+        <h2>User Management</h2>
+        <p>Coming soon...</p>
+      </section>
+
+      <!-- Moderators Section -->
+      <section
+        id="moderators-section"
+        class="moderators-section"
+        style="display: none"
+      >
+        <h2>Moderator Management</h2>
+        <p>Coming soon...</p>
+      </section>
+
+      <!-- Reports Section -->
+      <section
+        id="reports-section"
+        class="reports-section"
+        style="display: none"
+      >
+        <h2>Reports & Analytics</h2>
+        <p>Coming soon...</p>
+      </section>
+
+      <!-- Profile Section -->
+      <section
+        id="profile-section"
+        class="profile-section"
+        style="display: none"
+      >
+        <h2>Admin Profile</h2>
+        <div class="profile-details">
+          <div class="profile-field">
+            <label>Username:</label>
+            <span id="profileUsername">-</span>
+          </div>
+          <div class="profile-field">
+            <label>Email:</label>
+            <span id="profileEmail">-</span>
+          </div>
+          <div class="profile-field">
+            <label>Role:</label>
+            <span id="profileRole">-</span>
+          </div>
+          <div class="profile-field">
+            <label>Full Name:</label>
+            <span id="profileName">-</span>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Scripts -->
+    <script src="../../js/config.js"></script>
+    <script src="../../js/api.js"></script>
+    <script src="../../js/auth.js"></script>
+    <script src="../../js/utils.js"></script>
+    <script src="../../js/admin/mass-schedule-manager.js"></script>
+
+    <script>
+      // Mobile menu toggle
+      const nav = document.querySelector("nav");
+      const body = document.body;
+
+      // Create menu toggle button
+      const menuToggle = document.createElement("button");
+      menuToggle.className = "menu-toggle";
+      menuToggle.innerHTML = "☰";
+      body.insertBefore(menuToggle, body.firstChild);
+
+      menuToggle.addEventListener("click", () => {
+        nav.classList.toggle("active");
+        if (nav.classList.contains("active")) {
+          menuToggle.style.opacity = "0";
+          menuToggle.style.pointerEvents = "none";
+        }
+      });
+
+      // Close menu when clicking outside
+      document.addEventListener("click", (e) => {
+        if (!nav.contains(e.target) && !menuToggle.contains(e.target)) {
+          nav.classList.remove("active");
+          menuToggle.style.opacity = "1";
+          menuToggle.style.pointerEvents = "auto";
+        }
+      });
+
+      // Navigation handling
+      document.querySelectorAll(".nav-link").forEach((link) => {
+        link.addEventListener("click", (e) => {
+          if (link.getAttribute("href").startsWith("#")) {
+            e.preventDefault();
+            const targetId = link.getAttribute("href").substring(1);
+            const targetSection = document.getElementById(targetId);
+
+            // Hide all sections
+            document.querySelectorAll("section").forEach((section) => {
+              section.style.display = "none";
+            });
+
+            // Show target section
+            if (targetSection) {
+              targetSection.style.display = "block";
+            }
+
+            // Update active link
+            document
+              .querySelectorAll(".nav-link")
+              .forEach((l) => l.classList.remove("active"));
+            link.classList.add("active");
+
+            // Close mobile menu
+            nav.classList.remove("active");
+            menuToggle.style.opacity = "1";
+            menuToggle.style.pointerEvents = "auto";
+          }
+        });
+      });
+
+      // Logout handler
+      document.getElementById("logoutBtn").addEventListener("click", (e) => {
+        e.preventDefault();
+        auth.logout();
+      });
+
+      // Load user data on page load
+      window.addEventListener("DOMContentLoaded", async () => {
+        // Protect page
+        if (!auth.protectPage("admin")) return;
+
+        try {
+          const userData = auth.getCurrentUser();
+          if (userData) {
+            document.getElementById("userName").textContent = userData.username;
+            document.getElementById("userRole").textContent =
+              userData.role.toUpperCase();
+
+            document.getElementById("profileUsername").textContent =
+              user.username;
+            document.getElementById("profileEmail").textContent =
+              userData.email;
+            document.getElementById("profileRole").textContent =
+              userData.role.toUpperCase();
+            document.getElementById(
+              "profileName"
+            ).textContent = `${userData.firstName} ${userData.lastName}`;
+          }
+        } catch (error) {
+          console.error("Error loading user data:", error);
+        }
+      });
+    </script>
+  </body>
+</html>

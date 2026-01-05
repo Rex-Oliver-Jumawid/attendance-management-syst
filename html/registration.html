@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cordium Registration</title>
+
+    <link
+      rel="apple-touch-icon"
+      sizes="180x180"
+      href="../favicon/apple-touch-icon.png"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="32x32"
+      href="../favicon/favicon-32x32.png"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="16x16"
+      href="../favicon/favicon-16x16.png"
+    />
+    <link rel="manifest" href="../favicon/site.webmanifest" />
+
+    <link rel="stylesheet" href="../css/login.css" />
+  </head>
+
+  <body>
+    <div id="registration-container">
+      <div class="go-back">
+        <a
+          href="login.html"
+          style="
+            text-decoration: none;
+            color: #0a0a0a;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+          "
+        >
+          <img
+            src="../images/right-arrow.png"
+            class="arrow-img"
+            alt="back-arrow"
+          />
+        </a>
+      </div>
+
+      <h2 style="margin-top: 20px">Member Registration</h2>
+      <p style="margin-bottom: 20px">Join our Community</p>
+
+      <form id="registrationForm" class="registration-form">
+        <input
+          type="text"
+          id="fullName"
+          name="fullName"
+          placeholder="Full Name"
+          required
+        />
+
+        <input
+          type="email"
+          id="email"
+          name="email"
+          placeholder="Email Address"
+          required
+        />
+
+        <input type="tel" id="phone" name="phone" placeholder="Phone Number" />
+
+        <input
+          type="text"
+          id="username"
+          name="username"
+          placeholder="Username"
+          required
+          minlength="4"
+        />
+
+        <input
+          type="password"
+          id="password"
+          name="password"
+          placeholder="Password (min. 6 characters)"
+          required
+          minlength="6"
+        />
+
+        <input
+          type="password"
+          id="confirmPassword"
+          name="confirmPassword"
+          placeholder="Confirm Password"
+          required
+        />
+
+        <button type="submit" class="btn-login">Create Account</button>
+      </form>
+    </div>
+
+    <img src="../images/mapua.png" id="mapua-logo" alt="mapua logo" />
+
+    <!-- Load scripts -->
+    <script src="../js/config.js"></script>
+    <script src="../js/utils.js"></script>
+    <script src="../js/api.js"></script>
+    <script src="../js/auth.js"></script>
+
+    <script>
+      // Check if already logged in
+      if (auth.isLoggedIn()) {
+        auth.redirectToDashboard();
+      }
+
+      // Handle registration form
+      document
+        .getElementById("registrationForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+
+          const fullName = document.getElementById("fullName").value.trim();
+          const email = document.getElementById("email").value.trim();
+          const phone = document.getElementById("phone").value.trim();
+          const username = document.getElementById("username").value.trim();
+          const password = document.getElementById("password").value;
+          const confirmPassword =
+            document.getElementById("confirmPassword").value;
+
+          // Split full name into first and last name
+          const nameParts = fullName.split(" ");
+          const firstName = nameParts[0];
+          const lastName = nameParts.slice(1).join(" ") || firstName; // Use first name if no last name
+
+          // Validate
+          if (!fullName || !email || !username || !password) {
+            showError("Please fill in all required fields");
+            return;
+          }
+
+          if (!isValidEmail(email)) {
+            showError("Please enter a valid email");
+            return;
+          }
+
+          if (!isValidPassword(password)) {
+            showError("Password must be at least 6 characters");
+            return;
+          }
+
+          if (password !== confirmPassword) {
+            showError("Passwords do not match");
+            return;
+          }
+
+          // Disable submit button
+          const submitBtn = e.target.querySelector('button[type="submit"]');
+          submitBtn.disabled = true;
+          submitBtn.textContent = "Creating Account...";
+
+          try {
+            // Prepare data for backend
+            const formData = {
+              firstName,
+              lastName,
+              username,
+              email,
+              phoneNumber: phone,
+              password,
+            };
+
+            // Call register API
+            const response = await auth.register(formData);
+
+            if (response.success) {
+              showSuccess(
+                "Registration successful! Redirecting to your dashboard..."
+              );
+
+              // Redirect to user dashboard after 1.5 seconds
+              setTimeout(() => {
+                window.location.href = "user/user.html";
+              }, 1500);
+            }
+          } catch (error) {
+            showError(
+              error.message || "Registration failed. Please try again."
+            );
+            submitBtn.disabled = false;
+            submitBtn.textContent = "Create Account";
+          }
+        });
+    </script>
+  </body>
+</html>

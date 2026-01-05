@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cordium</title>
+
+    <link
+      rel="apple-touch-icon"
+      sizes="180x180"
+      href="../favicon/apple-touch-icon.png"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="32x32"
+      href="../favicon/favicon-32x32.png"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="16x16"
+      href="../favicon/favicon-16x16.png"
+    />
+    <link rel="manifest" href="../favicon/site.webmanifest" />
+
+    <link rel="stylesheet" href="../css/login.css" />
+  </head>
+
+  <body>
+    <img src="../images/logo.svg" id="main-logo" alt="main-logo" />
+    <h4 class="quote">make your presence known</h4>
+
+    <div class="login-container">
+      <form id="loginForm">
+        <input
+          type="email"
+          id="email"
+          name="email"
+          placeholder="Email"
+          required
+        />
+        <input
+          type="password"
+          id="password"
+          name="password"
+          placeholder="Password"
+          required
+        />
+        <button class="btn-login" type="submit">Login</button>
+
+        <a
+          href="#"
+          onclick="handleForgotPassword()"
+          style="text-decoration: none; color: black"
+          class="forgot"
+        >
+          Forgot password?</a
+        >
+
+        <hr />
+
+        <button
+          class="new-acc"
+          type="button"
+          onclick="window.location.href='registration.html'"
+        >
+          Create new account
+        </button>
+      </form>
+    </div>
+
+    <img src="../images/mapua.png" id="mapua-logo" alt="mapua logo" />
+
+    <!--
+
+    <hr />
+    <footer>
+      <p class="footer-config"><b>© 2025 Cordium. All rights reserved.</b></p>
+    </footer>
+    -->
+
+    <script src="../js/config.js"></script>
+    <script src="../js/api.js"></script>
+    <script src="../js/auth.js"></script>
+
+    <!-- Load scripts in order -->
+    <script src="../js/config.js"></script>
+    <script src="../js/utils.js"></script>
+    <script src="../js/api.js"></script>
+    <script src="../js/auth.js"></script>
+
+    <!-- Login functionality -->
+    <script>
+      // Check if already logged in
+      if (auth.isLoggedIn()) {
+        auth.redirectToDashboard();
+      }
+
+      // Handle login form submission
+      document
+        .getElementById("loginForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+
+          const email = document.getElementById("email").value.trim();
+          const password = document.getElementById("password").value;
+
+          // Validate
+          if (!email || !password) {
+            showError("Please fill in all fields");
+            return;
+          }
+
+          if (!isValidEmail(email)) {
+            showError("Please enter a valid email");
+            return;
+          }
+
+          // Disable submit button
+          const submitBtn = e.target.querySelector('button[type="submit"]');
+          submitBtn.disabled = true;
+          submitBtn.textContent = "Logging in...";
+
+          try {
+            // Call login API
+            const response = await auth.login(email, password);
+
+            if (response.success) {
+              showSuccess("Login successful! Redirecting...");
+
+              // Redirect after 1 second
+              setTimeout(() => {
+                auth.redirectToDashboard();
+              }, 1000);
+            }
+          } catch (error) {
+            showError(
+              error.message || "Login failed. Please check your credentials."
+            );
+            submitBtn.disabled = false;
+            submitBtn.textContent = "Login";
+          }
+        });
+
+      // Forgot password handler
+      function handleForgotPassword() {
+        alert("Please contact the administrator to reset your password.");
+      }
+    </script>
+  </body>
+</html>

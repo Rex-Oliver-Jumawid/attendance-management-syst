@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cordium User Dashboard</title>
+
+    <link
+      rel="apple-touch-icon"
+      sizes="180x180"
+      href="../../favicon/apple-touch-icon.png"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="32x32"
+      href="../../favicon/favicon-32x32.png"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="16x16"
+      href="../../favicon/favicon-16x16.png"
+    />
+    <link rel="manifest" href="../../favicon/site.webmanifest" />
+
+    <link rel="stylesheet" href="../../css/inside.css" />
+    <link rel="stylesheet" href="../../css/user/user-dashboard.css" />
+  </head>
+
+  <body>
+    <nav>
+      <div class="sidebar-container">
+        <div class="brand-container">
+          <img
+            src="../../images/cordium-white.svg"
+            class="cordium-logo"
+            alt="cordium-logo"
+          />
+        </div>
+
+        <div class="links-container">
+          <a href="#home-section" class="nav-link active">
+            <img src="../../images/icons/home.png" class="nav-link-img" />Home
+          </a>
+          <a href="#qr-section" class="nav-link">
+            <img
+              src="../../images/icons/qr-code.png"
+              class="nav-link-img"
+            />Generate QR
+          </a>
+          <a href="#attendance-section" class="nav-link">
+            <img
+              src="../../images/icons/calendar.png"
+              class="nav-link-img"
+            />Attendance
+          </a>
+          <a href="#profile-section" class="nav-link">
+            <img
+              src="../../images/icons/user.png"
+              class="nav-link-img"
+            />Profile
+          </a>
+          <a href="#" id="logoutBtn" class="nav-link">
+            <img
+              src="../../images/icons/logout.png"
+              class="nav-link-img"
+            />Logout
+          </a>
+        </div>
+
+        <div class="profile-container">
+          <p>Welcome, <span id="userName">User</span></p>
+          <br />
+          </small><small id="userRole">USER</small>
+        </div>
+      </div>
+    </nav>
+
+    <div class="main-content">
+      <!-- Home Section -->
+      <section id="home-section" class="home-section">
+        <h1>Welcome to Your Dashboard</h1>
+        <p>Manage your church attendance and view your history</p>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <h3 id="totalAttendance">0</h3>
+            <p>Total Attendance</p>
+          </div>
+          <div class="stat-card">
+            <h3 id="thisMonthAttendance">0</h3>
+            <p>This Month</p>
+          </div>
+          <div class="stat-card">
+            <h3 id="lastMassDate">N/A</h3>
+            <p>Last Mass Attended</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Profile Section -->
+      <section
+        id="profile-section"
+        class="profile-section"
+        style="display: none"
+      >
+        <h2>My Profile</h2>
+
+        <div class="profile-details">
+          <div class="profile-field">
+            <label>Full Name:</label>
+            <span id="profileName">Loading...</span>
+          </div>
+          <div class="profile-field">
+            <label>Email:</label>
+            <span id="profileEmail">Loading...</span>
+          </div>
+          <div class="profile-field">
+            <label>Username:</label>
+            <span id="profileUsername">Loading...</span>
+          </div>
+          <div class="profile-field">
+            <label>Phone:</label>
+            <span id="profilePhone">Loading...</span>
+          </div>
+          <div class="profile-field">
+            <label>Role:</label>
+            <span id="profileRole">Loading...</span>
+          </div>
+          <div class="profile-field">
+            <label>Member Since:</label>
+            <span id="profileJoinDate">Loading...</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- QR Generation Section -->
+      <section id="qr-section" class="qr-section">
+        <h2>Generate Attendance QR Code</h2>
+        <p>Generate your QR code for today's mass attendance</p>
+
+        <button id="generateQRBtn" class="btn-primary">Generate QR Code</button>
+
+        <div id="qrCodeDisplay">
+          <img id="qrCodeImage" alt="QR Code" />
+          <p><strong>Status:</strong> <span id="qrStatus">Active</span></p>
+          <p><strong>Expires At:</strong> <span id="expiryTime"></span></p>
+          <p><strong>Time Remaining:</strong> <span id="countdown"></span></p>
+          <p style="color: #666; margin-top: 20px">
+            Show this QR code to the moderator to record your attendance
+          </p>
+        </div>
+      </section>
+
+      <!-- Attendance History Section -->
+      <section id="attendance-section">
+        <h2>Attendance History</h2>
+
+        <div
+          style="
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+          "
+        >
+          <div id="attendanceStats"></div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Date & Time</th>
+                <th>Mass Type</th>
+                <th>Recorded By</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody id="attendanceHistoryTable">
+              <tr>
+                <td colspan="4">Loading...</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="pagination-controls">
+            <button id="prevPage" class="btn-primary">Previous</button>
+            <span id="currentPage">Page 1</span>
+            <button id="nextPage" class="btn-primary">Next</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script src="../../js/config.js"></script>
+    <script src="../../js/utils.js"></script>
+    <script src="../../js/api.js"></script>
+    <script src="../../js/auth.js"></script>
+    <script src="../../js/user/qr-generator.js"></script>
+    <script src="../../js/user/attendance-history.js"></script>
+  </body>
+
+  <script>
+    // Mobile menu toggle
+    const nav = document.querySelector("nav");
+    const body = document.body;
+
+    // Create menu toggle button
+    const menuToggle = document.createElement("button");
+    menuToggle.className = "menu-toggle";
+    menuToggle.innerHTML = "☰";
+    body.insertBefore(menuToggle, body.firstChild);
+
+    menuToggle.addEventListener("click", () => {
+      nav.classList.toggle("active");
+      // Hide hamburger when menu is open
+      if (nav.classList.contains("active")) {
+        menuToggle.style.opacity = "0";
+        menuToggle.style.pointerEvents = "none";
+      }
+    });
+
+    // Close menu when clicking outside
+    document.addEventListener("click", (e) => {
+      if (!nav.contains(e.target) && !menuToggle.contains(e.target)) {
+        nav.classList.remove("active");
+        // Show hamburger when menu closes
+        menuToggle.style.opacity = "1";
+        menuToggle.style.pointerEvents = "auto";
+      }
+    });
+
+    // Navigation handling
+    document.querySelectorAll(".nav-link").forEach((link) => {
+      link.addEventListener("click", (e) => {
+        if (link.getAttribute("href").startsWith("#")) {
+          e.preventDefault();
+          const targetId = link.getAttribute("href").substring(1);
+          const targetSection = document.getElementById(targetId);
+
+          // Hide all sections
+          document.querySelectorAll("section").forEach((section) => {
+            section.style.display = "none";
+          });
+
+          // Show target section
+          if (targetSection) {
+            targetSection.style.display = "block";
+          }
+
+          // Update active link
+          document
+            .querySelectorAll(".nav-link")
+            .forEach((l) => l.classList.remove("active"));
+          link.classList.add("active");
+
+          // Close mobile menu and show hamburger
+          nav.classList.remove("active");
+          menuToggle.style.opacity = "1";
+          menuToggle.style.pointerEvents = "auto";
+        }
+      });
+    });
+
+    // Logout handler
+    document.getElementById("logoutBtn").addEventListener("click", (e) => {
+    e.preventDefault();
+    auth.logout();
+    });
+
+    // Load user data on page load
+    window.addEventListener("DOMContentLoaded", async () => {
+      try {
+        const userData = auth.getCurrentUser();
+        if (userData) {
+          document.getElementById("userName").textContent = userData.username;
+          document.getElementById("userRole").textContent =
+            userData.role.toUpperCase();
+
+          // Load profile section
+          document.getElementById(
+            "profileName"
+          ).textContent = `${userData.firstName} ${userData.lastName}`;
+          document.getElementById("profileEmail").textContent = userData.email;
+          document.getElementById("profileUsername").textContent =
+            userData.username;
+          document.getElementById("profilePhone").textContent =
+            userData.phoneNumber || "N/A";
+          document.getElementById("profileRole").textContent = userData.role;
+          document.getElementById("profileJoinDate").textContent = formatDate(
+            userData.createdAt
+          );
+        }
+
+        // Check for existing active QR code when visiting QR section
+        document
+          .querySelector('a[href="#qr-section"]')
+          .addEventListener("click", async () => {
+            try {
+              const response = await api.checkQRStatus();
+              if (
+                response.success &&
+                response.data &&
+                response.data.status === "active"
+              ) {
+                const qrData = response.data;
+                document.getElementById("qrCodeImage").src =
+                  qrData.qrCodeImage || qrData.qrCode;
+                document.getElementById("qrStatus").textContent = qrData.status;
+                document.getElementById("expiryTime").textContent = formatDate(
+                  qrData.expiresAt
+                );
+                document.getElementById("qrCodeDisplay").style.display =
+                  "block";
+                document.getElementById("generateQRBtn").disabled = true;
+                document.getElementById("generateQRBtn").textContent =
+                  "QR Code Active";
+
+                // Start countdown
+                startCountdown(new Date(qrData.expiresAt));
+              }
+            } catch (error) {
+              console.log("No active QR code found");
+            }
+          });
+      } catch (error) {
+        console.error("Error loading user data:", error);
+      }
+    });
+
+    // Add countdown function
+    function startCountdown(expiryDate) {
+      const countdownInterval = setInterval(() => {
+        const now = new Date().getTime();
+        const distance = new Date(expiryDate).getTime() - now;
+
+        if (distance < 0) {
+          clearInterval(countdownInterval);
+          document.getElementById("countdown").textContent = "Expired";
+          document.getElementById("qrStatus").textContent = "Expired";
+          document.getElementById("generateQRBtn").disabled = false;
+          document.getElementById("generateQRBtn").textContent =
+            "Generate QR Code";
+          return;
+        }
+
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+        document.getElementById(
+          "countdown"
+        ).textContent = `${minutes}m ${seconds}s`;
+      }, 1000);
+    }
+  </script>
+</html>
