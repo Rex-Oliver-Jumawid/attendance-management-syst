@@ -21,8 +21,27 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      minlength: 6,
       select: false,
+      validate: {
+        validator: function (v) {
+          // Password is only required for moderators and admins
+          if (this.role === "moderator" || this.role === "admin") {
+            return v && v.length >= 6;
+          }
+          // For members, password is optional (can be undefined or any length)
+          if (!v) return true; // undefined/null is okay for members
+          return v.length >= 6; // if provided, must be at least 6 chars
+        },
+        message: function (props) {
+          if (
+            props.instance.role === "moderator" ||
+            props.instance.role === "admin"
+          ) {
+            return "Password is required for moderators and admins (minimum 6 characters)";
+          }
+          return "Password must be at least 6 characters if provided";
+        },
+      },
     },
     role: {
       type: String,
@@ -40,6 +59,11 @@ const userSchema = new mongoose.Schema(
     phoneNumber: {
       type: String,
       sparse: true,
+    },
+    emailPassword: {
+      type: String,
+      select: false, // Don't include by default in queries
+      required: false, // Optional - only for admins who want to send emails
     },
     isActive: {
       type: Boolean,

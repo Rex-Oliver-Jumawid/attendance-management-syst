@@ -65,52 +65,53 @@ class ContributionsManager {
 
       console.log("Schedules:", schedules.length);
       console.log("Attendance records:", attendanceRecords.length);
-      console.log("Sample schedule:", schedules[0]);
-      console.log("Sample attendance:", attendanceRecords[0]);
 
       // Helper to safely get string ID
       function getId(val) {
         if (!val) return "";
         if (typeof val === "string") return val;
-        if (val._id) return val._id.toString();
-        return val.toString();
+        if (typeof val === "object") {
+          if (val._id) return getId(val._id);
+          if (val.$oid) return val.$oid;
+        }
+        return String(val);
       }
 
-      // Group attendance by schedule/session ID
+      // Group attendance by schedule ID (with fallback to massType for old records)
       const attendanceBySchedule = {};
       attendanceRecords.forEach((record) => {
-        const scheduleId = getId(record.sessionId || record.scheduleId);
+        const scheduleId = getId(record.scheduleId);
         const userId = getId(record.userId);
-        if (!scheduleId || !userId) {
-          console.warn(
-            "Attendance record missing scheduleId or userId:",
-            record
-          );
-          return;
+        if (!userId) return;
+
+        if (scheduleId) {
+          // New records with scheduleId
+          if (!attendanceBySchedule[scheduleId]) {
+            attendanceBySchedule[scheduleId] = [];
+          }
+          attendanceBySchedule[scheduleId].push(record);
         }
-        if (!attendanceBySchedule[scheduleId]) {
-          attendanceBySchedule[scheduleId] = [];
-        }
-        attendanceBySchedule[scheduleId].push(record);
       });
+
+      console.log("Attendance by schedule:", attendanceBySchedule);
+      console.log(
+        "Schedule IDs:",
+        schedules.map((s) => getId(s._id))
+      );
 
       // Build schedule data with attendees
       this.scheduleData = schedules.map((schedule) => {
         const scheduleId = getId(schedule._id);
+
+        // Match attendance by scheduleId
         const attendees = (attendanceBySchedule[scheduleId] || []).map(
           (record) => {
             const userId = getId(record.userId);
-            // Find contribution for this user
+            // Find contribution for this user and schedule
             const contrib = contributions.find(
               (c) =>
                 getId(c.userId) === userId && getId(c.scheduleId) === scheduleId
             );
-
-            if (!contrib) {
-              console.log(
-                `No contribution found for user ${userId} and schedule ${scheduleId}`
-              );
-            }
 
             return {
               userId: userId,
@@ -129,6 +130,7 @@ class ContributionsManager {
           scheduleId: schedule._id,
           scheduleName: schedule.name || `${schedule.massType}`,
           massType: schedule.massType,
+          scheduleType: schedule.scheduleType || "recurring",
           startTime: schedule.startTime,
           endTime: schedule.endTime,
           attendanceCount: attendees.length,
@@ -141,7 +143,7 @@ class ContributionsManager {
     } catch (error) {
       console.error("Failed to load schedule attendance:", error);
       if (this.scheduleAttendanceList) {
-        this.scheduleAttendanceList.innerHTML = `<p>Failed to load schedules: ${error.message}</p>`;
+        this.scheduleAttendanceList.innerHTML = `<p style=\"color: #e74c3c;\">Failed to load schedules: ${error.message}</p>`;
       }
     }
   }

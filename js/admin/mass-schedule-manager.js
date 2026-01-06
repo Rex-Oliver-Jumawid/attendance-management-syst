@@ -349,7 +349,12 @@ class MassScheduleManager {
               ${schedule.isActive ? "Deactivate" : "Activate"}
             </button>
           `
-              : ""
+              : `
+            <button class="btn-primary" onclick="massScheduleManager.sendAbsenceFollowUp('${schedule._id}')" 
+              style="background: #ee6c4d; padding: 8px 12px; font-size: 0.9em;">
+              Email Absent Members
+            </button>
+          `
           }
           <button class="btn-delete" onclick="massScheduleManager.deleteSchedule('${
             schedule._id
@@ -511,6 +516,34 @@ class MassScheduleManager {
       }
     } catch (error) {
       console.error("Failed to load admin stats:", error);
+    }
+  }
+
+  async sendAbsenceFollowUp(scheduleId) {
+    if (
+      !confirm(
+        "Send follow-up emails to members who didn't attend this schedule?"
+      )
+    ) {
+      return;
+    }
+
+    try {
+      showLoading("Sending emails to absent members...");
+      const result = await api.sendAbsenceFollowUp(scheduleId);
+      hideLoading();
+
+      if (result.success) {
+        showSuccess(
+          `Email sent to ${result.absentCount} absent member(s). ${result.attendedCount} member(s) attended.`
+        );
+      } else {
+        showError(result.message || "Failed to send emails");
+      }
+    } catch (error) {
+      hideLoading();
+      console.error("Error sending absence follow-up:", error);
+      showError(error.message || "Failed to send absence follow-up emails");
     }
   }
 }

@@ -11,6 +11,11 @@ const attendanceRecordSchema = new mongoose.Schema({
     ref: "AttendanceSession",
     required: false, // Optional for permanent QR codes
   },
+  scheduleId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "MassSchedule",
+    required: false, // Optional for backward compatibility
+  },
   moderatorId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
@@ -38,5 +43,6 @@ const attendanceRecordSchema = new mongoose.Schema({
 attendanceRecordSchema.index({ userId: 1, scannedAt: -1 });
 attendanceRecordSchema.index({ moderatorId: 1 });
 attendanceRecordSchema.index({ massDate: -1 });
+attendanceRecordSchema.index({ scheduleId: 1 });
 
 module.exports = mongoose.model("AttendanceRecord", attendanceRecordSchema);

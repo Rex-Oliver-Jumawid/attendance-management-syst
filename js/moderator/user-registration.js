@@ -57,7 +57,7 @@ async function loadUsers() {
     console.error("Error loading users:", error);
     document.getElementById("usersTableBody").innerHTML = `
       <tr>
-        <td colspan="7" style="text-align: center; color: #e74c3c;">
+        <td colspan="6" style="text-align: center; color: #e74c3c;">
           ${error.message || "Failed to load users"}
         </td>
       </tr>
@@ -72,7 +72,7 @@ function renderUsersTable(users) {
   if (!users || users.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="7" style="text-align: center;">No users found</td>
+        <td colspan="6" style="text-align: center;">No users found</td>
       </tr>
     `;
     return;
@@ -83,7 +83,6 @@ function renderUsersTable(users) {
       (user) => `
     <tr>
       <td>${user.firstName} ${user.lastName}</td>
-      <td>${user.username}</td>
       <td>${user.email}</td>
       <td>${user.phoneNumber || "N/A"}</td>
       <td style="text-align: center;">
@@ -135,7 +134,6 @@ function setupUserSearch() {
       (user) =>
         user.firstName.toLowerCase().includes(searchTerm) ||
         user.lastName.toLowerCase().includes(searchTerm) ||
-        user.username.toLowerCase().includes(searchTerm) ||
         user.email.toLowerCase().includes(searchTerm)
     );
 
@@ -170,7 +168,7 @@ function showQRCodeModal(userId) {
     <div style="background: white; padding: 30px; border-radius: 10px; text-align: center; max-width: 400px;">
       <h3 style="margin-bottom: 20px;">${user.firstName} ${user.lastName}</h3>
       <img src="${user.qrCodeImage}" alt="QR Code" style="width: 300px; height: 300px; margin-bottom: 20px;" />
-      <p style="margin-bottom: 20px; color: #666;">Username: ${user.username}</p>
+      <p style="margin-bottom: 20px; color: #666;">${user.email}</p>
       <button class="btn-primary" onclick="this.closest('div').parentElement.remove()">Close</button>
     </div>
   `;
@@ -207,7 +205,11 @@ async function downloadQRCode(userId) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${user.username}-qr-code.png`;
+    const fileName = `${user.firstName}_${user.lastName}_QR.png`.replace(
+      /\s+/g,
+      "_"
+    );
+    a.download = fileName;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -226,8 +228,9 @@ async function toggleUserStatus(userId, newStatus) {
   if (!user) return;
 
   const action = newStatus ? "activate" : "deactivate";
+  const displayName = user.username || `${user.firstName} ${user.lastName}`;
 
-  if (!confirm(`Are you sure you want to ${action} ${user.username}?`)) {
+  if (!confirm(`Are you sure you want to ${action} ${displayName}?`)) {
     return;
   }
 

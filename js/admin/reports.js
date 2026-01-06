@@ -136,9 +136,18 @@ class ReportsManager {
   }
 
   displayAllTimeView(scheduleBreakdown) {
+    console.log("=== displayAllTimeView ===");
+    console.log("scheduleBreakdown received:", scheduleBreakdown);
+    console.log("Number of schedules:", scheduleBreakdown.length);
+
     // Flatten all attendees from all schedules
     const allAttendees = [];
     scheduleBreakdown.forEach((schedule) => {
+      console.log(
+        `Schedule: ${schedule.scheduleName}, Attendees: ${
+          schedule.attendees?.length || 0
+        }`
+      );
       if (schedule.attendees && schedule.attendees.length > 0) {
         schedule.attendees.forEach((attendee) => {
           allAttendees.push({
@@ -150,74 +159,232 @@ class ReportsManager {
       }
     });
 
+    console.log("Total flattened attendees:", allAttendees.length);
     this.displayAllTimeSummary(allAttendees);
   }
 
   displayAllTimeSummary(allAttendees) {
+    console.log("=== displayAllTimeSummary ===");
+    console.log("Total attendees received:", allAttendees.length);
+    console.log("Sample attendee:", allAttendees[0]);
+
     if (allAttendees.length === 0) {
       this.scheduleAttendanceList.innerHTML = `
         <div class="attendance-summary" style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-          <h3 style="margin: 0 0 20px 0; color: #0c1014;">All Time Member Attendance</h3>
+          <h3 style="margin: 0 0 20px 0; color: #0c1014;">Monthly Member Attendance</h3>
           <p style="color: #666;">No attendance records found yet.</p>
         </div>
       `;
       return;
     }
 
-    // Group by member (email)
-    const memberMap = new Map();
+    // Group by month and member
+    const monthMap = new Map();
+
     allAttendees.forEach((attendee) => {
-      const email = attendee.userEmail || "N/A";
-      if (!memberMap.has(email)) {
-        memberMap.set(email, {
-          name: attendee.userName,
-          email: email,
-          count: 0,
+      const date = new Date(attendee.scannedAt);
+      const monthKey = `${date.getFullYear()}-${String(
+        date.getMonth() + 1
+      ).padStart(2, "0")}`;
+      const monthLabel = date.toLocaleDateString("en-US", {
+        month: "long",
+        year: "numeric",
+      });
+
+      if (!monthMap.has(monthKey)) {
+        monthMap.set(monthKey, {
+          monthKey,
+          monthLabel,
+          year: date.getFullYear(),
+          month: date.getMonth(),
+          members: new Map(),
         });
       }
-      memberMap.get(email).count++;
+
+      const month = monthMap.get(monthKey);
+      const email = attendee.userEmail || "N/A";
+
+      if (!month.members.has(email)) {
+        month.members.set(email, {
+          name: attendee.userName,
+          email: email,
+          attendances: [],
+        });
+      }
+
+      month.members.get(email).attendances.push({
+        date: attendee.scannedAt,
+        schedule: attendee.scheduleName,
+        massType: attendee.massType,
+        moderator: attendee.moderatorName,
+      });
     });
 
-    // Convert to array and sort by attendance count (descending)
-    const memberStats = Array.from(memberMap.values()).sort(
-      (a, b) => b.count - a.count
+    // Convert to array and sort by month (newest first)
+    const months = Array.from(monthMap.values()).sort(
+      (a, b) => b.year - a.year || b.month - a.month
     );
 
+    console.log("Months grouped:", months.length);
+    months.forEach((month, idx) => {
+      console.log(
+        `Month ${idx + 1}: ${month.monthLabel} - ${month.members.size} members`
+      );
+      if (idx === 0) {
+        // Log first month's members for debugging
+        const membersList = Array.from(month.members.values());
+        console.log(
+          "First month members:",
+          membersList.map((m) => ({
+            name: m.name,
+            email: m.email,
+            attendanceCount: m.attendances.length,
+          }))
+        );
+      }
+    });
+
+    const totalMembers = new Set(allAttendees.map((a) => a.userEmail)).size;
+
     const html = `
-      <div class="attendance-summary" style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px;">
-        <h3 style="margin: 0 0 20px 0; color: #0c1014;">All Time Member Attendance (${
-          memberStats.length
-        } members, ${allAttendees.length} total attendances)</h3>
-        <div style="overflow-x: auto;">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Rank</th>
-                <th>Member Name</th>
-                <th>Total Attendances</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${memberStats
-                .map(
-                  (member, index) => `
-                <tr>
-                  <td><strong>#${index + 1}</strong></td>
-                  <td><strong>${member.name || "N/A"}</strong></td>
-                  <td><span style="background: #3d5a80; color: white; padding: 6px 16px; border-radius: 12px; font-weight: 600; font-size: 1.1em;">${
-                    member.count
-                  }</span></td>
-                </tr>
-              `
-                )
-                .join("")}
-            </tbody>
-          </table>
+      <div class="attendance-summary" style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <h3 style="margin: 0 0 15px 0; color: #0c1014;">Monthly Member Attendance</h3>
+        
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 4px; margin-bottom: 20px;">
+          <p style="margin: 0; color: #666; font-size: 16px;">
+            <strong>${totalMembers}</strong> unique members with <strong>${
+      allAttendees.length
+    }</strong> total attendances across <strong>${
+      months.length
+    }</strong> month(s)
+          </p>
         </div>
+
+        <div class="tabs" style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #e0e0e0; flex-wrap: wrap;">
+          ${months
+            .map(
+              (month, index) => `
+            <button 
+              class="month-tab-btn ${index === 0 ? "active" : ""}" 
+              data-tab="month-${index}"
+              style="padding: 10px 20px; border: none; background: ${
+                index === 0 ? "#3d5a80" : "transparent"
+              }; color: ${
+                index === 0 ? "white" : "#666"
+              }; font-weight: 600; cursor: pointer; border-radius: 4px 4px 0 0; transition: all 0.3s;"
+            >
+              ${month.monthLabel}
+            </button>
+          `
+            )
+            .join("")}
+        </div>
+        
+        ${months
+          .map((month, index) => {
+            const memberStats = Array.from(month.members.values()).sort(
+              (a, b) => b.attendances.length - a.attendances.length
+            );
+            const totalAttendances = memberStats.reduce(
+              (sum, m) => sum + m.attendances.length,
+              0
+            );
+
+            return `
+              <div id="month-${index}" class="tab-content" style="display: ${
+              index === 0 ? "block" : "none"
+            };">
+                <p style="color: #666; margin-bottom: 15px;">
+                  <strong>${
+                    memberStats.length
+                  }</strong> members with <strong>${totalAttendances}</strong> total attendances
+                </p>
+                <div style="overflow-x: auto;">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Rank</th>
+                        <th>Member Name</th>
+                        <th>Times Attended</th>
+                        <th>Attendance Details</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${memberStats
+                        .map(
+                          (member, idx) => `
+                        <tr>
+                          <td><strong>#${idx + 1}</strong></td>
+                          <td><strong>${member.name || "N/A"}</strong></td>
+                          <td><span style="background: #3d5a80; color: white; padding: 6px 16px; border-radius: 12px; font-weight: 600;">${
+                            member.attendances.length
+                          }</span></td>
+                          <td>
+                            <details style="cursor: pointer;">
+                              <summary style="font-weight: 600; color: #3d5a80;">View ${
+                                member.attendances.length
+                              } attendance(s)</summary>
+                              <div style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 4px; max-height: 300px; overflow-y: auto;">
+                                ${member.attendances
+                                  .sort(
+                                    (a, b) =>
+                                      new Date(a.date) - new Date(b.date)
+                                  )
+                                  .map(
+                                    (att) => `
+                                  <div style="padding: 8px 0; border-bottom: 1px solid #dee2e6;">
+                                    <span style="color: #666; font-size: 0.95em;">${formatDate(
+                                      att.date
+                                    )} at ${formatTime(att.date)}</span><br>
+                                    <strong>${
+                                      att.schedule || att.massType
+                                    }</strong><br>
+                                    <span style="color: #888; font-size: 0.85em;">Scanned by: ${
+                                      att.moderator
+                                    }</span>
+                                  </div>
+                                `
+                                  )
+                                  .join("")}
+                              </div>
+                            </details>
+                          </td>
+                        </tr>
+                      `
+                        )
+                        .join("")}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            `;
+          })
+          .join("")}
       </div>
     `;
 
     this.scheduleAttendanceList.innerHTML = html;
+
+    // Add tab switching for months
+    document.querySelectorAll(".month-tab-btn").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        const tabId = e.target.dataset.tab;
+
+        // Update button styles
+        document.querySelectorAll(".month-tab-btn").forEach((b) => {
+          b.style.background = "transparent";
+          b.style.color = "#666";
+        });
+        e.target.style.background = "#3d5a80";
+        e.target.style.color = "white";
+
+        // Show/hide content
+        document.querySelectorAll(".tab-content").forEach((content) => {
+          content.style.display = "none";
+        });
+        document.getElementById(tabId).style.display = "block";
+      });
+    });
   }
 
   displayTabbedPeriods(allAttendees) {
@@ -243,18 +410,142 @@ class ReportsManager {
       });
     }
 
-    // Get unique months/years from the data, or default to current month
-    const monthYears = new Set();
-    if (allAttendees.length > 0) {
-      allAttendees.forEach((att) => {
-        const date = new Date(att.scannedAt);
-        monthYears.add(`${date.getFullYear()}-${date.getMonth()}`);
+    // Show simple last 7 days report grouped by day
+    this.displayLast7DaysReport(allAttendees);
+  }
+
+  displayLast7DaysReport(allAttendees) {
+    // Group attendees by date (day)
+    const dayMap = new Map();
+    const now = new Date();
+
+    // Initialize last 7 days
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(now);
+      date.setDate(date.getDate() - i);
+      const dateKey = date.toDateString();
+      dayMap.set(dateKey, {
+        date: new Date(date),
+        dateKey: dateKey,
+        attendances: [],
+        memberSet: new Set(),
       });
-    } else {
-      // Default to current month if no data
-      const now = new Date();
-      monthYears.add(`${now.getFullYear()}-${now.getMonth()}`);
     }
+
+    // Fill in actual attendance data
+    allAttendees.forEach((attendee) => {
+      const date = new Date(attendee.scannedAt);
+      const dateKey = date.toDateString();
+
+      if (dayMap.has(dateKey)) {
+        const day = dayMap.get(dateKey);
+        day.attendances.push(attendee);
+        if (attendee.userEmail) {
+          day.memberSet.add(attendee.userEmail);
+        }
+      }
+    });
+
+    const days = Array.from(dayMap.values());
+    const totalAttendances = allAttendees.length;
+    const uniqueMembers = new Set(
+      allAttendees.map((a) => a.userEmail).filter((e) => e && e !== "N/A")
+    );
+
+    const html = `
+      <div class="weekly-report" style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <h3 style="margin: 0 0 15px 0; color: #0c1014;">Last 7 Days Report</h3>
+        
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 4px; margin-bottom: 20px;">
+          <p style="margin: 0; color: #666; font-size: 16px;">
+            <strong>${
+              uniqueMembers.size
+            }</strong> unique members with <strong>${totalAttendances}</strong> total attendances
+          </p>
+        </div>
+
+        ${
+          days.length === 0
+            ? "<p>No attendance records for the last 7 days</p>"
+            : ""
+        }
+        
+        <div style="overflow-x: auto;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Day</th>
+                <th>Total Scans</th>
+                <th>Unique Members</th>
+                <th>Details</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${days
+                .map(
+                  (day) => `
+                <tr>
+                  <td><strong>${formatDate(day.date)}</strong></td>
+                  <td>${day.date.toLocaleDateString("en-US", {
+                    weekday: "long",
+                  })}</td>
+                  <td><span style="background: #3d5a80; color: white; padding: 4px 12px; border-radius: 12px; font-weight: 600;">${
+                    day.attendances.length
+                  }</span></td>
+                  <td>${day.memberSet.size}</td>
+                  <td>
+                    ${
+                      day.attendances.length > 0
+                        ? `
+                      <details style="cursor: pointer;">
+                        <summary style="font-weight: 600; color: #3d5a80;">View ${
+                          day.attendances.length
+                        } scan(s)</summary>
+                        <div style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 4px; max-height: 300px; overflow-y: auto;">
+                          ${day.attendances
+                            .sort(
+                              (a, b) =>
+                                new Date(a.scannedAt) - new Date(b.scannedAt)
+                            )
+                            .map(
+                              (att) => `
+                              <div style="padding: 8px 0; border-bottom: 1px solid #dee2e6;">
+                                <strong>${att.userName}</strong><br>
+                                <span style="color: #666; font-size: 0.9em;">${formatTime(
+                                  att.scannedAt
+                                )} - ${
+                                att.scheduleName || att.massType
+                              }</span><br>
+                                <span style="color: #888; font-size: 0.85em;">Scanned by: ${
+                                  att.moderatorName
+                                }</span>
+                              </div>
+                            `
+                            )
+                            .join("")}
+                        </div>
+                      </details>
+                    `
+                        : '<span style="color: #999;">No scans</span>'
+                    }
+                  </td>
+                </tr>
+              `
+                )
+                .join("")}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+
+    this.scheduleAttendanceList.innerHTML = html;
+  }
+
+  displayWeeklyTabsOLD_BACKUP(scheduleBreakdown) {
+    // This is the old monthly/weekly breakdown code - kept for reference
+    const allAttendees = [];
 
     const monthYearOptions = Array.from(monthYears)
       .map((key) => {
@@ -994,6 +1285,7 @@ class ReportsManager {
                   <th style="padding: 8px; text-align: left; border-bottom: 2px solid #e0e0e0;">Date</th>
                   <th style="padding: 8px; text-align: left; border-bottom: 2px solid #e0e0e0;">Time</th>
                   <th style="padding: 8px; text-align: left; border-bottom: 2px solid #e0e0e0;">Scanned By</th>
+                  <th style="padding: 8px; text-align: center; border-bottom: 2px solid #e0e0e0;">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -1005,6 +1297,18 @@ class ReportsManager {
                     <td style="padding: 8px;">${formatDate(a.scannedAt)}</td>
                     <td style="padding: 8px;">${formatTime(a.scannedAt)}</td>
                     <td style="padding: 8px;">${a.moderatorName || "N/A"}</td>
+                    <td style="padding: 8px; text-align: center;">
+                      <button 
+                        class="btn-danger btn-small" 
+                        style="padding: 4px 12px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;"
+                        onclick="reportsManager.deleteAttendanceRecord('${
+                          a.recordId
+                        }', '${a.userName}')"
+                        title="Delete this attendance record"
+                      >
+                        Delete
+                      </button>
+                    </td>
                   </tr>
                 `
                   )
@@ -1153,6 +1457,31 @@ class ReportsManager {
     document.body.removeChild(link);
 
     showSuccess("Monthly report exported successfully!");
+  }
+
+  async deleteAttendanceRecord(recordId, userName) {
+    if (
+      !confirm(
+        `Are you sure you want to delete the attendance record for ${userName}?`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const response = await api.deleteAttendanceRecord(recordId);
+
+      if (response.success) {
+        showSuccess("Attendance record deleted successfully");
+        // Reload reports to reflect the change
+        await this.loadReports();
+      } else {
+        showError(response.message || "Failed to delete attendance record");
+      }
+    } catch (error) {
+      console.error("Error deleting attendance record:", error);
+      showError(error.message || "Failed to delete attendance record");
+    }
   }
 }
 

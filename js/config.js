@@ -23,6 +23,7 @@ const API_CONFIG = {
     MODERATOR_UPDATE_USER_STATUS: "/moderator/users/:id/status",
     MODERATOR_CONTRIBUTIONS: "/moderator/contributions",
     MODERATOR_EXPENSES: "/moderator/expenses",
+    MODERATOR_SCHEDULE_ATTENDEES: "/moderator/schedules/:scheduleId/attendees",
 
     // Admin endpoints
     ADMIN_USERS: "/admin/users",

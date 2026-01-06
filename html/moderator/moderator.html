@@ -99,16 +99,16 @@
 
         <div class="stats-grid">
           <div class="stat-card">
-            <h3 id="totalScans">0</h3>
-            <p>Total Scans Today</p>
+            <h3 id="totalMembers">0</h3>
+            <p>Members</p>
           </div>
           <div class="stat-card">
-            <h3 id="recentScans">0</h3>
-            <p>Last Hour</p>
+            <h3 id="activeSchedules">0</h3>
+            <p>Active Schedules</p>
           </div>
           <div class="stat-card">
-            <h3 id="activeSessions">0</h3>
-            <p>Active QR Sessions</p>
+            <h3 id="totalExpenses">0</h3>
+            <p>Expenses Recorded</p>
           </div>
         </div>
       </section>
@@ -199,7 +199,6 @@
             <thead>
               <tr>
                 <th>Name</th>
-                <th>Username</th>
                 <th>Email</th>
                 <th>Phone</th>
                 <th>QR Code</th>
@@ -209,7 +208,7 @@
             </thead>
             <tbody id="usersTableBody">
               <tr>
-                <td colspan="7" style="text-align: center">Loading users...</td>
+                <td colspan="6" style="text-align: center">Loading users...</td>
               </tr>
             </tbody>
           </table>
@@ -408,6 +407,55 @@
         <h2>Expense Management</h2>
         <p>Record and track church expenses</p>
 
+        <!-- Available Balance Card -->
+        <div
+          style="
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+          "
+        >
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            "
+          >
+            <div>
+              <h3
+                style="
+                  margin: 0 0 5px 0;
+                  color: #666;
+                  font-size: 14px;
+                  font-weight: 500;
+                "
+              >
+                Available Balance
+              </h3>
+              <p
+                id="availableBalance"
+                style="
+                  margin: 0;
+                  font-size: 32px;
+                  font-weight: 700;
+                  color: #3d5a80;
+                "
+              >
+                ₱0.00
+              </p>
+            </div>
+            <div style="text-align: right; color: #888; font-size: 13px">
+              <p style="margin: 0">Total Contributions - Total Expenses</p>
+              <p style="margin: 5px 0 0 0; font-style: italic">
+                Updates automatically
+              </p>
+            </div>
+          </div>
+        </div>
+
         <!-- Add Expense Form -->
         <div
           class="form-container"
@@ -424,6 +472,18 @@
               style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px"
             >
               <div class="form-group">
+                <label for="expenseAmount">Amount (₱) *</label>
+                <input
+                  type="number"
+                  id="expenseAmount"
+                  placeholder="Enter amount"
+                  required
+                  min="0"
+                  step="0.01"
+                />
+              </div>
+
+              <div class="form-group">
                 <label for="expenseCategory">Category *</label>
                 <select id="expenseCategory" required>
                   <option value="">Select category...</option>
@@ -435,44 +495,6 @@
                   <option value="Charity">Charity</option>
                   <option value="Other">Other</option>
                 </select>
-              </div>
-
-              <div class="form-group">
-                <label for="expenseMonth">Month *</label>
-                <select id="expenseMonth" required>
-                  <option value="1">January</option>
-                  <option value="2">February</option>
-                  <option value="3">March</option>
-                  <option value="4">April</option>
-                  <option value="5">May</option>
-                  <option value="6">June</option>
-                  <option value="7">July</option>
-                  <option value="8">August</option>
-                  <option value="9">September</option>
-                  <option value="10">October</option>
-                  <option value="11">November</option>
-                  <option value="12">December</option>
-                </select>
-              </div>
-
-              <div class="form-group">
-                <label for="expenseYear">Year *</label>
-                <input
-                  type="number"
-                  id="expenseYear"
-                  required
-                  min="2000"
-                  max="2100"
-                />
-              </div>
-
-              <div class="form-group">
-                <label for="expenseNotes">Notes</label>
-                <input
-                  type="text"
-                  id="expenseNotes"
-                  placeholder="Optional notes"
-                />
               </div>
             </div>
 
@@ -657,11 +679,49 @@
             document.getElementById("profileJoinDate").textContent = formatDate(
               userData.createdAt
             );
+
+            // Load home section stats
+            loadHomeStats();
           }
         } catch (error) {
           console.error("Error loading user data:", error);
         }
       });
+
+      // Load home section statistics
+      async function loadHomeStats() {
+        try {
+          // Get all members count
+          const usersResponse = await api.getAllUsersForModerator();
+          if (usersResponse.success) {
+            document.getElementById("totalMembers").textContent =
+              usersResponse.count || 0;
+          }
+
+          // Get active schedules count
+          const schedulesResponse = await api.getMassSchedules(true);
+          if (schedulesResponse.success) {
+            document.getElementById("activeSchedules").textContent =
+              schedulesResponse.schedules?.length || 0;
+          }
+
+          // Get total expenses count
+          const expensesResponse = await api.getAllExpenses();
+          if (expensesResponse.success) {
+            document.getElementById("totalExpenses").textContent =
+              expensesResponse.count || 0;
+          }
+        } catch (error) {
+          console.error("Error loading home stats:", error);
+        }
+      }
+
+      // Refresh home stats every 30 seconds
+      setInterval(() => {
+        if (document.getElementById("home-section").style.display !== "none") {
+          loadHomeStats();
+        }
+      }, 30000);
     </script>
   </body>
 </html>

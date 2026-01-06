@@ -1,4 +1,7 @@
 const MassSchedule = require("../models/MassSchedule");
+const User = require("../models/User");
+const AttendanceRecord = require("../models/AttendanceRecord");
+const emailService = require("../services/email.service");
 
 // @desc    Create mass schedule
 // @route   POST /api/admin/mass-schedules
@@ -63,6 +66,48 @@ exports.createSchedule = async (req, res) => {
     }
 
     const schedule = await MassSchedule.create(scheduleData);
+
+    // Send email notification to all members (not admins or moderators)
+    try {
+      // Get admin info for sending email
+      const admin = await User.findById(adminId).select(
+        "firstName lastName email emailPassword"
+      );
+
+      if (admin && admin.email && admin.emailPassword) {
+        const members = await User.find({
+          role: "member",
+          isActive: true,
+        }).select("email");
+
+        const memberEmails = members
+          .map((member) => member.email)
+          .filter(Boolean);
+
+        if (memberEmails.length > 0) {
+          console.log(
+            `Sending schedule announcement to ${memberEmails.length} members from ${admin.email}...`
+          );
+
+          const adminInfo = {
+            name: `${admin.firstName} ${admin.lastName}`,
+            email: admin.email,
+            password: admin.emailPassword,
+          };
+
+          await emailService.sendScheduleAnnouncement(
+            schedule,
+            memberEmails,
+            adminInfo
+          );
+        }
+      } else {
+        console.log("Admin email not configured - skipping email notification");
+      }
+    } catch (emailError) {
+      // Log error but don't fail the schedule creation
+      console.error("Failed to send email notifications:", emailError.message);
+    }
 
     res.status(201).json({
       success: true,
@@ -219,6 +264,114 @@ exports.deleteSchedule = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Error deleting schedule",
+      error: error.message,
+    });
+  }
+};
+
+// @desc    Send absence follow-up email to members who didn't attend
+// @route   POST /api/admin/mass-schedules/:id/send-absence-followup
+// @access  Private (Admin/Moderator)
+exports.sendAbsenceFollowUp = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const adminId = req.user.id;
+
+    // Get the schedule
+    const schedule = await MassSchedule.findById(id);
+    if (!schedule) {
+      return res.status(404).json({
+        success: false,
+        message: "Schedule not found",
+      });
+    }
+
+    // Get all active members
+    const allMembers = await User.find({
+      role: "member",
+      isActive: true,
+    }).select("email firstName lastName");
+
+    if (allMembers.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: "No active members found",
+      });
+    }
+
+    // Get members who attended this schedule
+    const attendanceRecords = await AttendanceRecord.find({
+      scheduleId: id,
+    }).select("userId");
+
+    const attendedUserIds = attendanceRecords.map((record) =>
+      record.userId.toString()
+    );
+
+    // Find members who didn't attend
+    const absentMembers = allMembers.filter(
+      (member) => !attendedUserIds.includes(member._id.toString())
+    );
+
+    if (absentMembers.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: "All members attended this schedule",
+      });
+    }
+
+    const absentMemberEmails = absentMembers
+      .map((member) => member.email)
+      .filter(Boolean);
+
+    // Get admin info for sending email
+    const admin = await User.findById(adminId).select(
+      "firstName lastName email emailPassword"
+    );
+
+    if (!admin || !admin.email || !admin.emailPassword) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Admin email not configured. Please set up your Gmail App Password in Profile settings.",
+      });
+    }
+
+    const adminInfo = {
+      name: `${admin.firstName} ${admin.lastName}`,
+      email: admin.email,
+      password: admin.emailPassword,
+    };
+
+    // Send the absence follow-up emails
+    console.log(
+      `Sending absence follow-up to ${absentMemberEmails.length} members for schedule: ${schedule.name}`
+    );
+
+    const result = await emailService.sendAbsenceFollowUp(
+      schedule,
+      absentMemberEmails,
+      adminInfo
+    );
+
+    if (result.success) {
+      res.status(200).json({
+        success: true,
+        message: `Absence follow-up email sent to ${absentMemberEmails.length} members`,
+        absentCount: absentMembers.length,
+        attendedCount: attendedUserIds.length,
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: result.message || "Failed to send emails",
+      });
+    }
+  } catch (error) {
+    console.error("Error sending absence follow-up:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error sending absence follow-up",
       error: error.message,
     });
   }

@@ -11,12 +11,15 @@ const {
   getSystemStats,
   updateUserStatus,
   getAttendanceReports,
+  deleteAttendanceRecord,
+  updateEmailConfig,
 } = require("../controllers/admin.controller");
 const {
   createSchedule,
   getAllSchedules,
   updateSchedule,
   deleteSchedule,
+  sendAbsenceFollowUp,
 } = require("../controllers/massSchedule.controller");
 const { protect, authorize } = require("../middleware/auth.middleware");
 
@@ -40,10 +43,17 @@ router.get("/mass-schedules", getAllSchedules);
 router.post("/mass-schedules", createSchedule);
 router.put("/mass-schedules/:id", updateSchedule);
 router.delete("/mass-schedules/:id", deleteSchedule);
+router.post("/mass-schedules/:id/send-absence-followup", sendAbsenceFollowUp);
+
+// Email configuration
+router.put("/email-config", updateEmailConfig);
 
 // Reports and statistics
 router.get("/reports", generateReport);
 router.get("/stats", getSystemStats);
 router.get("/reports/attendance", getAttendanceReports);
+
+// Attendance management
+router.delete("/attendance/:id", deleteAttendanceRecord);
 
 module.exports = router;

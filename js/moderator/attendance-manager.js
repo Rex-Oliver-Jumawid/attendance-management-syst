@@ -86,7 +86,7 @@ class AttendanceManager {
                     ? `${record.userId.firstName} ${record.userId.lastName}`
                     : "N/A"
                 }</td>
-                <td>${record.userId?.username || "N/A"}</td>
+                <td>${record.userId?.email || "N/A"}</td>
                 <td>${record.massType}</td>
                 <td>${record.notes || "-"}</td>
             </tr>

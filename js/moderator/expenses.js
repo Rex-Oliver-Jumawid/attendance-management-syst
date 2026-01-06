@@ -1,14 +1,37 @@
 // Expense Management for Moderators
 
 let allExpenses = [];
+let availableBalance = 0;
 
 // Load data when page loads
 document.addEventListener("DOMContentLoaded", () => {
+  loadAvailableBalance();
   loadExpenses();
   setupExpenseForm();
   setupExpenseFilters();
   populateYearFilters();
+
+  // Auto-refresh balance every 30 seconds
+  setInterval(loadAvailableBalance, 30000);
 });
+
+// Load available balance
+async function loadAvailableBalance() {
+  try {
+    const data = await api.getAvailableBalance();
+    availableBalance = data.data.availableBalance;
+
+    // Update balance display
+    const balanceElement = document.getElementById("availableBalance");
+    if (balanceElement) {
+      balanceElement.textContent = `₱${availableBalance.toFixed(2)}`;
+      balanceElement.style.color =
+        availableBalance >= 0 ? "#3d5a80" : "#e74c3c";
+    }
+  } catch (error) {
+    console.error("Error loading balance:", error);
+  }
+}
 
 // Load all expenses
 async function loadExpenses() {
@@ -41,14 +64,23 @@ function setupExpenseForm() {
     submitBtn.textContent = "Recording...";
 
     try {
+      const amount = parseFloat(document.getElementById("expenseAmount").value);
+
+      // Validate amount against available balance
+      if (amount > availableBalance) {
+        showError(
+          `Expense amount (₱${amount.toFixed(
+            2
+          )}) exceeds available balance (₱${availableBalance.toFixed(2)})`
+        );
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalBtnText;
+        return;
+      }
+
       const expenseData = {
-        description: document.getElementById("expenseDescription").value.trim(),
-        amount: parseFloat(document.getElementById("expenseAmount").value),
+        amount: amount,
         category: document.getElementById("expenseCategory").value,
-        month: parseInt(document.getElementById("expenseMonth").value),
-        year: parseInt(document.getElementById("expenseYear").value),
-        notes:
-          document.getElementById("expenseNotes").value.trim() || undefined,
       };
 
       await api.addExpense(expenseData);
@@ -56,10 +88,8 @@ function setupExpenseForm() {
       showSuccess("Expense recorded successfully!");
       form.reset();
 
-      // Reset year to current year
-      const currentYear = new Date().getFullYear();
-      document.getElementById("expenseYear").value = currentYear;
-
+      // Reload data
+      await loadAvailableBalance();
       await loadExpenses();
     } catch (error) {
       showError(error.message || "Failed to record expense");

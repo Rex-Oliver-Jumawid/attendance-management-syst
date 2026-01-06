@@ -1,16 +1,56 @@
 // Utility Functions
 
+// Global loading overlay
+let loadingOverlay = null;
+
 // Show loading spinner
-function showLoading(element) {
-  if (element) {
-    element.innerHTML = '<div class="spinner">Loading...</div>';
-    element.classList.add("loading");
+function showLoading(messageOrElement) {
+  // If it's a string, show global loading overlay with message
+  if (typeof messageOrElement === "string") {
+    if (!loadingOverlay) {
+      loadingOverlay = document.createElement("div");
+      loadingOverlay.id = "globalLoadingOverlay";
+      loadingOverlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 99999;
+        color: white;
+        font-size: 18px;
+      `;
+      document.body.appendChild(loadingOverlay);
+    }
+    loadingOverlay.innerHTML = `
+      <div style="text-align: center;">
+        <div class="spinner" style="border: 4px solid #f3f3f3; border-top: 4px solid #3d5a80; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div>
+        <div>${messageOrElement}</div>
+      </div>
+    `;
+    loadingOverlay.style.display = "flex";
+  }
+  // If it's an element, use old behavior
+  else if (messageOrElement) {
+    messageOrElement.innerHTML = '<div class="spinner">Loading...</div>';
+    messageOrElement.classList.add("loading");
   }
 }
 
 // Hide loading spinner
 function hideLoading(element) {
-  if (element) {
+  // If no parameter, hide global overlay
+  if (!element) {
+    if (loadingOverlay) {
+      loadingOverlay.style.display = "none";
+    }
+  }
+  // Otherwise hide loading from specific element
+  else if (element) {
     element.classList.remove("loading");
   }
 }

@@ -483,17 +483,6 @@
               <input
                 type="text"
                 id="assignUsername"
-                placeholder="Enter username (min. 3 characters)"
-                required
-                minlength="3"
-              />
-            </div>
-
-            <div class="form-group">
-              <label for="assignUsername">Set Username *</label>
-              <input
-                type="text"
-                id="assignUsername"
                 placeholder="Enter username for login"
                 required
                 minlength="3"
@@ -565,10 +554,10 @@
               Today
             </button>
             <button class="btn-filter" data-range="week" id="reportWeekBtn">
-              Reports
+              Recent
             </button>
             <button class="btn-filter" data-range="all" id="reportAllBtn">
-              All Time
+              Monthly
             </button>
           </div>
 
@@ -632,6 +621,51 @@
             <label>Full Name:</label>
             <span id="profileName">-</span>
           </div>
+        </div>
+
+        <div
+          style="
+            margin-top: 40px;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+          "
+        >
+          <h3>Email Configuration for Schedule Announcements</h3>
+          <p style="color: #666; margin-bottom: 20px">
+            Set up your Gmail App Password to send schedule announcements to
+            members. Emails will be sent from your email address.
+          </p>
+
+          <form id="emailConfigForm" style="max-width: 500px">
+            <div class="form-group">
+              <label for="emailPassword">Gmail App Password</label>
+              <input
+                type="password"
+                id="emailPassword"
+                placeholder="Enter your 16-character Gmail App Password"
+                style="
+                  width: 100%;
+                  padding: 10px;
+                  border: 1px solid #ddd;
+                  border-radius: 4px;
+                "
+              />
+              <small style="color: #666; display: block; margin-top: 5px">
+                Get this from:
+                <a
+                  href="https://myaccount.google.com/apppasswords"
+                  target="_blank"
+                  >https://myaccount.google.com/apppasswords</a
+                >
+              </small>
+            </div>
+            <div class="form-actions" style="margin-top: 20px">
+              <button type="submit" class="btn-primary">
+                Save Email Configuration
+              </button>
+            </div>
+          </form>
         </div>
       </section>
 
@@ -934,6 +968,42 @@
           }
         } catch (error) {
           console.error("Error loading user data:", error);
+        }
+
+        // Email configuration form handler
+        const emailConfigForm = document.getElementById("emailConfigForm");
+        if (emailConfigForm) {
+          emailConfigForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            const emailPassword = document
+              .getElementById("emailPassword")
+              .value.trim();
+
+            if (!emailPassword) {
+              alert("Please enter your Gmail App Password");
+              return;
+            }
+
+            try {
+              const result = await api.updateEmailPassword(emailPassword);
+
+              if (result.success) {
+                alert(
+                  "Email configuration saved successfully! Schedule announcements will be sent from your email."
+                );
+                document.getElementById("emailPassword").value = "";
+              } else {
+                alert(
+                  "Error saving email configuration: " +
+                    (result.message || "Unknown error")
+                );
+              }
+            } catch (error) {
+              console.error("Error updating email configuration:", error);
+              alert("Error saving email configuration. Please try again.");
+            }
+          });
         }
       });
     </script>

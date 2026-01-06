@@ -173,6 +173,15 @@ class API {
     );
   }
 
+  async getScheduleAttendees(scheduleId) {
+    return this.get(
+      API_CONFIG.ENDPOINTS.MODERATOR_SCHEDULE_ATTENDEES.replace(
+        ":scheduleId",
+        scheduleId
+      )
+    );
+  }
+
   async addContribution(contributionData) {
     return this.post(
       API_CONFIG.ENDPOINTS.MODERATOR_CONTRIBUTIONS,
@@ -190,6 +199,10 @@ class API {
 
   async getAllExpenses() {
     return this.get(API_CONFIG.ENDPOINTS.MODERATOR_EXPENSES);
+  }
+
+  async getAvailableBalance() {
+    return this.get("/moderator/balance");
   }
 
   // ========== ADMIN APIS ==========
@@ -243,11 +256,25 @@ class API {
     return this.get(API_CONFIG.ENDPOINTS.ADMIN_STATS);
   }
 
+  async updateEmailPassword(emailPassword) {
+    return this.put("/admin/email-config", { emailPassword });
+  }
+
+  async sendAbsenceFollowUp(scheduleId) {
+    return this.post(
+      `/admin/mass-schedules/${scheduleId}/send-absence-followup`
+    );
+  }
+
   async getAdminAttendanceReports(params = {}) {
     const queryString = new URLSearchParams(params).toString();
     return this.get(
       `${API_CONFIG.ENDPOINTS.ADMIN_ATTENDANCE_REPORTS}?${queryString}`
     );
+  }
+
+  async deleteAttendanceRecord(recordId) {
+    return this.delete(`/admin/attendance/${recordId}`);
   }
 
   // ========== MASS SCHEDULE APIS ==========

@@ -643,8 +643,8 @@ exports.getAttendanceReports = async (req, res) => {
 
     // Get attendance records with populated data
     const records = await AttendanceRecord.find(query)
-      .populate("userId", "firstName lastName username")
-      .populate("moderatorId", "firstName lastName username")
+      .populate("userId", "firstName lastName email")
+      .populate("moderatorId", "firstName lastName")
       .sort({ scannedAt: -1 });
 
     console.log(`Found ${records.length} attendance records`);
@@ -690,16 +690,19 @@ exports.getAttendanceReports = async (req, res) => {
 
       // Create breakdown for each schedule
       todaySchedules.forEach((schedule) => {
-        // Filter records that match this schedule's mass type and time
+        // Filter records that match this schedule's ID
         const scheduleRecords = records.filter((record) => {
-          return record.massType === schedule.massType;
+          return (
+            record.scheduleId &&
+            record.scheduleId.toString() === schedule._id.toString()
+          );
         });
 
         const attendees = scheduleRecords.map((record) => ({
+          recordId: record._id.toString(),
           userName: record.userId
             ? `${record.userId.firstName} ${record.userId.lastName}`
             : "Unknown",
-          userUsername: record.userId?.username || "N/A",
           scannedAt: record.scannedAt,
           moderatorName: record.moderatorId
             ? `${record.moderatorId.firstName} ${record.moderatorId.lastName}`
@@ -724,20 +727,42 @@ exports.getAttendanceReports = async (req, res) => {
         return a.startTime.localeCompare(b.startTime);
       });
     } else {
-      // For other ranges (week, month, all), return all records in a single breakdown
-      // The frontend will handle grouping by week/month/user
-      const allAttendees = records.map((record) => ({
-        userName: record.userId
-          ? `${record.userId.firstName} ${record.userId.lastName}`
-          : "Unknown",
-        userUsername: record.userId?.username || "N/A",
-        scannedAt: record.scannedAt,
-        scheduleName: record.massType || "Other",
-        massType: record.massType || "Other",
-        moderatorName: record.moderatorId
-          ? `${record.moderatorId.firstName} ${record.moderatorId.lastName}`
-          : "N/A",
-      }));
+      // For other ranges (week, month, all), get schedule info for each record
+      console.log(`Processing ${records.length} records for range: ${range}`);
+
+      const scheduleIds = [
+        ...new Set(
+          records.map((r) => r.scheduleId?.toString()).filter(Boolean)
+        ),
+      ];
+      console.log(`Found ${scheduleIds.length} unique schedule IDs`);
+
+      const schedules = await MassSchedule.find({ _id: { $in: scheduleIds } });
+      console.log(`Loaded ${schedules.length} schedules from database`);
+
+      const scheduleMap = new Map(schedules.map((s) => [s._id.toString(), s]));
+
+      const allAttendees = records.map((record) => {
+        const schedule = record.scheduleId
+          ? scheduleMap.get(record.scheduleId.toString())
+          : null;
+        return {
+          recordId: record._id.toString(),
+          userName: record.userId
+            ? `${record.userId.firstName} ${record.userId.lastName}`
+            : "Unknown",
+          userEmail: record.userId?.email || "N/A",
+          scannedAt: record.scannedAt,
+          scheduleName: schedule?.name || record.massType || "Other",
+          massType: schedule?.massType || record.massType || "Other",
+          moderatorName: record.moderatorId
+            ? `${record.moderatorId.firstName} ${record.moderatorId.lastName}`
+            : "N/A",
+        };
+      });
+
+      console.log(`Created ${allAttendees.length} attendee records`);
+      console.log(`Sample attendee:`, allAttendees[0]);
 
       // Return a single "schedule" entry with all attendees
       scheduleBreakdown = [
@@ -775,6 +800,71 @@ exports.getAttendanceReports = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Error generating reports",
+      error: error.message,
+    });
+  }
+};
+
+// @desc    Delete attendance record
+// @route   DELETE /api/admin/attendance/:id
+// @access  Private (Admin)
+exports.deleteAttendanceRecord = async (req, res) => {
+  try {
+    const recordId = req.params.id;
+
+    const record = await AttendanceRecord.findById(recordId);
+
+    if (!record) {
+      return res.status(404).json({
+        success: false,
+        message: "Attendance record not found",
+      });
+    }
+
+    await AttendanceRecord.findByIdAndDelete(recordId);
+
+    res.status(200).json({
+      success: true,
+      message: "Attendance record deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting attendance record:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error deleting attendance record",
+      error: error.message,
+    });
+  }
+};
+
+// @desc    Update admin email configuration for sending notifications
+// @route   PUT /api/admin/email-config
+// @access  Private (Admin)
+exports.updateEmailConfig = async (req, res) => {
+  try {
+    const { emailPassword } = req.body;
+
+    if (!emailPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Email password is required",
+      });
+    }
+
+    // Update the admin's email password
+    await User.findByIdAndUpdate(req.user.id, {
+      emailPassword: emailPassword,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Email configuration updated successfully",
+    });
+  } catch (error) {
+    console.error("Error updating email configuration:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error updating email configuration",
       error: error.message,
     });
   }

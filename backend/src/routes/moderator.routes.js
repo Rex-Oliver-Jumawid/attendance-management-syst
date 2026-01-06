@@ -12,7 +12,12 @@ const {
   getAllContributions,
   addExpense,
   getAllExpenses,
+  getAvailableBalance,
+  getScheduleAttendees,
 } = require("../controllers/moderator.controller");
+const {
+  sendAbsenceFollowUp,
+} = require("../controllers/massSchedule.controller");
 const { protect, authorize } = require("../middleware/auth.middleware");
 
 // All routes are protected and require 'moderator' or 'admin' role
@@ -35,5 +40,10 @@ router.post("/contributions", addContribution);
 router.get("/contributions", getAllContributions);
 router.post("/expenses", addExpense);
 router.get("/expenses", getAllExpenses);
+router.get("/balance", getAvailableBalance);
+
+// Schedule attendees
+router.get("/schedules/:scheduleId/attendees", getScheduleAttendees);
+router.post("/schedules/:id/send-absence-followup", sendAbsenceFollowUp);
 
 module.exports = router;

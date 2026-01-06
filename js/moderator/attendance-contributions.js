@@ -187,11 +187,22 @@ class AttendanceContributionsManager {
               schedule.massType
             }</p>
           </div>
-          <span style="background: #3d5a80; color: white; padding: 8px 16px; border-radius: 20px; font-weight: 600;">
-            ${schedule.attendanceCount} Attendance${
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <span style="background: #3d5a80; color: white; padding: 8px 16px; border-radius: 20px; font-weight: 600;">
+              ${schedule.attendanceCount} Attendance${
       schedule.attendanceCount !== 1 ? "s" : ""
     }
-          </span>
+            </span>
+            <button 
+              class="btn-primary" 
+              onclick="attendanceContributionsManager.sendAbsenceFollowUp('${
+                schedule.scheduleId
+              }')"
+              style="background: #ee6c4d; padding: 8px 12px; font-size: 13px; white-space: nowrap;"
+              title="Send email to members who didn't attend">
+              📧 Email Absent
+            </button>
+          </div>
         </div>
         <div class="schedule-body">
           <p><strong>Time:</strong> ${schedule.startTime} - ${
@@ -248,6 +259,44 @@ class AttendanceContributionsManager {
     } catch (error) {
       console.error("Error recording contribution:", error);
       showError("Failed to record contribution: " + error.message);
+    }
+  }
+
+  async sendAbsenceFollowUp(scheduleId) {
+    if (
+      !confirm(
+        "Send follow-up emails to members who didn't attend this schedule?"
+      )
+    ) {
+      return;
+    }
+
+    try {
+      showLoading("Sending emails to absent members...");
+      const result = await fetch(
+        `${API_CONFIG.BASE_URL}/moderator/schedules/${scheduleId}/send-absence-followup`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem(STORAGE_KEYS.TOKEN)}`,
+            "Content-Type": "application/json",
+          },
+        }
+      ).then((res) => res.json());
+
+      hideLoading();
+
+      if (result.success) {
+        showSuccess(
+          `Email sent to ${result.absentCount} absent member(s). ${result.attendedCount} member(s) attended.`
+        );
+      } else {
+        showError(result.message || "Failed to send emails");
+      }
+    } catch (error) {
+      hideLoading();
+      console.error("Error sending absence follow-up:", error);
+      showError(error.message || "Failed to send absence follow-up emails");
     }
   }
 }
