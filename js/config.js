@@ -30,6 +30,7 @@ const API_CONFIG = {
     ADMIN_STATS: "/admin/stats",
     ADMIN_MASS_SCHEDULES: "/admin/mass-schedules",
     MASS_SCHEDULES: "/mass-schedules",
+    ADMIN_ATTENDANCE_REPORTS: "/admin/reports/attendance",
 
     // Mass Schedule endpoints (public current schedule)
     CURRENT_SCHEDULE: "/mass-schedules/current",

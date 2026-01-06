@@ -1,168 +1,188 @@
-// User Management for Admin
+// Moderator Assignment for Admin
 
-class UserManagement {
+class ModeratorAssignment {
   constructor() {
-    this.users = [];
-    this.currentPage = 1;
+    this.moderators = [];
+    this.availableUsers = [];
     this.init();
   }
 
   init() {
-    // Protect page
-    if (!auth.protectPage("admin")) return;
-
-    // Initialize UI
     this.initElements();
     this.attachEventListeners();
-    this.loadUsers();
-    updateNavbarUserInfo();
-    initLogoutButton();
+    this.loadModerators();
+    this.loadAvailableUsers();
   }
 
   initElements() {
-    this.usersTable = document.getElementById("usersTable");
-    this.searchInput = document.getElementById("searchUsers");
-    this.roleFilter = document.getElementById("roleFilter");
-    this.refreshBtn = document.getElementById("refreshUsers");
+    this.moderatorsList = document.getElementById("moderatorsList");
+    this.assignForm = document.getElementById("assignModeratorForm");
+    this.userSelect = document.getElementById("userToAssign");
   }
 
   attachEventListeners() {
-    if (this.searchInput) {
-      this.searchInput.addEventListener(
-        "input",
-        debounce(() => {
-          this.loadUsers();
-        }, 500)
-      );
-    }
-
-    if (this.roleFilter) {
-      this.roleFilter.addEventListener("change", () => {
-        this.loadUsers();
-      });
-    }
-
-    if (this.refreshBtn) {
-      this.refreshBtn.addEventListener("click", () => {
-        this.loadUsers();
-      });
+    if (this.assignForm) {
+      this.assignForm.addEventListener("submit", (e) => this.handleAssign(e));
     }
   }
 
-  async loadUsers() {
+  async loadModerators() {
     try {
-      showLoading(this.usersTable);
-
-      const params = {};
-
-      if (this.searchInput?.value) {
-        params.search = this.searchInput.value;
-      }
-
-      if (this.roleFilter?.value) {
-        params.role = this.roleFilter.value;
-      }
-
-      const response = await api.getAllUsers(params);
+      const response = await api.getAllModerators();
 
       if (response.success) {
-        this.users = response.users;
-        this.displayUsers(response.users);
+        this.moderators = response.moderators;
+        this.displayModerators();
+        this.refreshAdminStats(); // Add this line
       }
     } catch (error) {
-      showError("Failed to load users");
-      console.error(error);
+      console.error("Failed to load moderators:", error);
+      if (this.moderatorsList) {
+        this.moderatorsList.innerHTML = "<p>Error loading moderators</p>";
+      }
     }
   }
 
-  displayUsers(users) {
-    if (!this.usersTable) return;
+  async loadAvailableUsers() {
+    try {
+      const response = await api.getAllUsers({ role: "user", isActive: true });
 
-    if (users.length === 0) {
-      this.usersTable.innerHTML =
-        '<tr><td colspan="6">No users found</td></tr>';
-      return;
+      if (response.success) {
+        this.availableUsers = response.users;
+        this.populateUserSelect();
+      }
+    } catch (error) {
+      console.error("Failed to load users:", error);
     }
+  }
 
-    const html = users
+  populateUserSelect() {
+    if (!this.userSelect) return;
+
+    const options = this.availableUsers
       .map(
-        (user) => `
-            <tr>
-                <td>${user.username}</td>
-                <td>${user.firstName} ${user.lastName}</td>
-                <td>${user.email}</td>
-                <td><span class="badge badge-${user.role}">${
-          user.role
-        }</span></td>
-                <td><span class="status-${
-                  user.isActive ? "active" : "inactive"
-                }">${user.isActive ? "Active" : "Inactive"}</span></td>
-                <td>
-                    <button onclick="userManagement.toggleUserStatus('${
-                      user._id
-                    }', ${!user.isActive})" class="btn-small">
-                        ${user.isActive ? "Deactivate" : "Activate"}
-                    </button>
-                    <button onclick="userManagement.viewUser('${
-                      user._id
-                    }')" class="btn-small">View</button>
-                </td>
-            </tr>
-        `
+        (user) =>
+          `<option value="${user._id}">
+            ${user.firstName} ${user.lastName} (${user.username})
+          </option>`
       )
       .join("");
 
-    this.usersTable.innerHTML = html;
+    this.userSelect.innerHTML =
+      '<option value="">-- Select a user --</option>' + options;
   }
 
-  async toggleUserStatus(userId, isActive) {
-    const action = isActive ? "activate" : "deactivate";
+  displayModerators() {
+    if (!this.moderatorsList) return;
 
-    if (!confirmAction(`Are you sure you want to ${action} this user?`)) {
+    if (this.moderators.length === 0) {
+      this.moderatorsList.innerHTML = "<p>No moderators assigned yet</p>";
+      return;
+    }
+
+    const html = this.moderators
+      .map(
+        (mod) => `
+        <div class="moderator-card">
+          <div class="moderator-header">
+            <div>
+              <h4>${mod.firstName} ${mod.lastName}</h4>
+              <p style="color: #666; margin: 5px 0;">
+                <strong>Email:</strong> ${mod.email}<br>
+                <strong>Username:</strong> ${mod.username}
+              </p>
+        
+            </div>
+            <span class="badge badge-active">MODERATOR</span>
+          </div>
+          <div class="moderator-actions">
+            <button 
+              class="btn-delete" 
+              onclick="moderatorAssignment.removeModerator('${mod._id}', '${mod.firstName} ${mod.lastName}')"
+            >
+              Remove Moderator Role
+            </button>
+          </div>
+        </div>
+      `
+      )
+      .join("");
+
+    this.moderatorsList.innerHTML = html;
+  }
+
+  async handleAssign(e) {
+    e.preventDefault();
+
+    const userId = this.userSelect.value;
+    const notes = this.notesInput.value.trim();
+
+    if (!userId) {
+      showError("Please select a user");
       return;
     }
 
     try {
-      const response = await api.updateUserStatus(userId, isActive);
+      const response = await api.assignModerator(userId);
 
       if (response.success) {
-        showSuccess(`User ${action}d successfully`);
-        this.loadUsers();
+        showSuccess("Moderator assigned successfully!");
+        this.assignForm.reset();
+        await this.loadModerators();
+        await this.loadAvailableUsers();
       }
     } catch (error) {
-      showError(error.message || `Failed to ${action} user`);
+      showError(error.message || "Failed to assign moderator");
     }
   }
 
-  async viewUser(userId) {
+  async removeModerator(userId, name) {
+    if (
+      !confirm(
+        `Are you sure you want to remove moderator role from ${name}? They will be changed back to a regular user.`
+      )
+    ) {
+      return;
+    }
+
     try {
-      const response = await api.getUserById(userId);
+      const response = await api.removeModerator(userId);
 
       if (response.success) {
-        this.showUserModal(response.user);
+        showSuccess("Moderator role removed successfully!");
+        await this.loadModerators();
+        await this.loadAvailableUsers();
       }
     } catch (error) {
-      showError("Failed to load user details");
+      showError(error.message || "Failed to remove moderator");
     }
   }
 
-  showUserModal(user) {
-    alert(`
-User Details:
---------------
-Name: ${user.firstName} ${user.lastName}
-Username: ${user.username}
-Email: ${user.email}
-Role: ${user.role}
-Status: ${user.isActive ? "Active" : "Inactive"}
-Attendance Count: ${user.attendanceCount || 0}
-Joined: ${formatDate(user.createdAt)}
-        `);
+  async refreshAdminStats() {
+    try {
+      const statsResponse = await api.getSystemStats();
+
+      if (statsResponse.success) {
+        document.getElementById("totalModerators").textContent =
+          statsResponse.stats.totalModerators || 0;
+      }
+    } catch (error) {
+      console.error("Failed to refresh stats:", error);
+    }
   }
 }
 
-// Initialize when page loads
-let userManagement;
+// Initialize when moderators section is loaded
+let moderatorAssignment;
 document.addEventListener("DOMContentLoaded", () => {
-  userManagement = new UserManagement();
+  const moderatorsLink = document.querySelector(
+    'a[href="#moderators-section"]'
+  );
+  if (moderatorsLink) {
+    moderatorsLink.addEventListener("click", () => {
+      if (!moderatorAssignment) {
+        moderatorAssignment = new ModeratorAssignment();
+      }
+    });
+  }
 });

@@ -9,6 +9,7 @@ const {
   generateReport,
   getSystemStats,
   updateUserStatus,
+  getAttendanceReports,
 } = require("../controllers/admin.controller");
 const {
   createSchedule,
@@ -41,5 +42,6 @@ router.delete("/mass-schedules/:id", deleteSchedule);
 // Reports and statistics
 router.get("/reports", generateReport);
 router.get("/stats", getSystemStats);
+router.get("/reports/attendance", getAttendanceReports);
 
 module.exports = router;

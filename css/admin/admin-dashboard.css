@@ -420,3 +420,105 @@ section.active {
     padding: 15px;
   }
 }
+
+/* Users Table */
+#usersTable {
+  width: 100%;
+  background: white;
+  border-collapse: collapse;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+#usersTable th,
+#usersTable td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+#usersTable th {
+  background: #f8f9fa;
+  font-weight: 600;
+  color: #0c1014;
+}
+
+#usersTable tr:hover {
+  background: #f8f9fa;
+}
+
+/* Badge Styles */
+.badge-user {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.badge-moderator {
+  background: #fff3e0;
+  color: #f57c00;
+}
+
+.badge-admin {
+  background: #fce4ec;
+  color: #c2185b;
+}
+
+.btn-small {
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+/* Moderator Cards */
+.moderator-card {
+  background: white;
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 15px;
+}
+
+.moderator-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 15px;
+}
+
+.moderator-header h4 {
+  margin: 0 0 5px 0;
+  color: #0c1014;
+}
+
+.moderator-actions {
+  padding-top: 15px;
+  border-top: 1px solid #e0e0e0;
+}
+
+/* Schedules Tabs */
+.schedules-tabs {
+  display: flex;
+  gap: 10px;
+  border-bottom: 2px solid #e0e0e0;
+  margin-bottom: 20px;
+}
+
+.tab-btn {
+  background: transparent;
+  border: none;
+  padding: 12px 24px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  color: #666;
+  border-bottom: 3px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.tab-btn:hover {
+  color: #0c1014;
+}
+
+.tab-btn.active {
+  color: #0c1014;
+  border-bottom-color: #0c1014;
+}

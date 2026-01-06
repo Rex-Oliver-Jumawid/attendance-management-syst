@@ -43,7 +43,7 @@
             <img src="../../images/icons/home.png" class="nav-link-img" />Home
           </a>
           <a href="#schedules-section" class="nav-link">
-            <img src="../../images/icons/scan.png" class="nav-link-img" />Mass
+            <img src="../../images/icons/add.png" class="nav-link-img" />
             Schedules
           </a>
           <a href="#users-section" class="nav-link">
@@ -102,12 +102,12 @@
             <p>Moderators</p>
           </div>
           <div class="stat-card">
-            <h3 id="totalSchedules">0</h3>
-            <p>Mass Schedules</p>
-          </div>
-          <div class="stat-card">
             <h3 id="activeSchedules">0</h3>
             <p>Active Schedules</p>
+          </div>
+          <div class="stat-card">
+            <h3 id="expiredSchedules">0</h3>
+            <p>Expired Schedules</p>
           </div>
         </div>
       </section>
@@ -233,16 +233,103 @@
           </div>
         </div>
 
-        <!-- Schedules List -->
-        <div class="schedules-list" id="schedulesList">
+        <!-- Schedules Tabs -->
+        <div class="schedules-tabs" style="margin-bottom: 20px">
+          <button class="tab-btn active" data-tab="active" id="activeTab">
+            Active Schedules
+          </button>
+          <button class="tab-btn" data-tab="expired" id="expiredTab">
+            Expired Schedules
+          </button>
+        </div>
+
+        <!-- Active Schedules List -->
+        <div class="schedules-list" id="activeSchedulesList">
           <p>Loading schedules...</p>
+        </div>
+
+        <!-- Expired Schedules List -->
+        <div
+          class="schedules-list"
+          id="expiredSchedulesList"
+          style="display: none"
+        >
+          <p>Loading expired schedules...</p>
         </div>
       </section>
 
       <!-- Users Section -->
       <section id="users-section" class="users-section" style="display: none">
         <h2>User Management</h2>
-        <p>Coming soon...</p>
+        <p>View and manage all registered users</p>
+
+        <!-- Search and Filter -->
+        <div
+          style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap"
+        >
+          <input
+            type="text"
+            id="userSearchInput"
+            placeholder="Search by name, email, or username..."
+            style="
+              flex: 1;
+              min-width: 250px;
+              padding: 10px 15px;
+              border: 2px solid #e0e0e0;
+              border-radius: 8px;
+              font-size: 14px;
+            "
+          />
+          <select
+            id="userRoleFilter"
+            style="
+              padding: 10px 15px;
+              border: 2px solid #e0e0e0;
+              border-radius: 8px;
+              font-size: 14px;
+            "
+          >
+            <option value="">All Roles</option>
+            <option value="user">Users</option>
+            <option value="moderator">Moderators</option>
+            <option value="admin">Admins</option>
+          </select>
+          <select
+            id="userStatusFilter"
+            style="
+              padding: 10px 15px;
+              border: 2px solid #e0e0e0;
+              border-radius: 8px;
+              font-size: 14px;
+            "
+          >
+            <option value="">All Status</option>
+            <option value="true">Active</option>
+            <option value="false">Inactive</option>
+          </select>
+        </div>
+
+        <!-- Users Table -->
+        <div style="overflow-x: auto">
+          <table id="usersTable">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Username</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Joined</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="usersTableBody">
+              <tr>
+                <td colspan="7">Loading users...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </section>
 
       <!-- Moderators Section -->
@@ -252,7 +339,35 @@
         style="display: none"
       >
         <h2>Moderator Management</h2>
-        <p>Coming soon...</p>
+        <p>Assign and manage moderators</p>
+
+        <!-- Assign New Moderator -->
+        <div class="form-container" style="margin-bottom: 30px">
+          <h3>Assign New Moderator</h3>
+          <form id="assignModeratorForm">
+            <div class="form-group">
+              <label for="userToAssign">Select User *</label>
+              <select id="userToAssign" required>
+                <option value="">-- Select a user --</option>
+              </select>
+              <small style="color: #666; display: block; margin-top: 5px">
+                Only active users with 'user' role are shown
+              </small>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" class="btn-primary">
+                Assign as Moderator
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Current Moderators List -->
+        <h3>Current Moderators</h3>
+        <div id="moderatorsList">
+          <p>Loading moderators...</p>
+        </div>
       </section>
 
       <!-- Reports Section -->
@@ -262,7 +377,71 @@
         style="display: none"
       >
         <h2>Reports & Analytics</h2>
-        <p>Coming soon...</p>
+        <p>View attendance records for all mass schedules</p>
+
+        <!-- Filter Controls -->
+        <div
+          style="
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+          "
+        >
+          <div style="display: flex; gap: 10px">
+            <button
+              class="btn-filter active"
+              data-range="day"
+              id="reportDayBtn"
+            >
+              Today
+            </button>
+            <button class="btn-filter" data-range="week" id="reportWeekBtn">
+              This Week
+            </button>
+            <button class="btn-filter" data-range="month" id="reportMonthBtn">
+              This Month
+            </button>
+            <button class="btn-filter" data-range="all" id="reportAllBtn">
+              All Time
+            </button>
+          </div>
+
+          <button
+            class="btn-primary btn-small"
+            id="refreshReportsBtn"
+            style="margin-left: auto"
+          >
+            🔄 Refresh
+          </button>
+        </div>
+
+        <!-- Summary Stats -->
+        <div class="stats-grid" style="margin-bottom: 30px">
+          <div class="stat-card">
+            <h3 id="reportTotalAttendance">0</h3>
+            <p>Total Attendance</p>
+          </div>
+          <div class="stat-card">
+            <h3 id="reportUniqueAttendees">0</h3>
+            <p>Unique Attendees</p>
+          </div>
+          <div class="stat-card">
+            <h3 id="reportScheduleCount">0</h3>
+            <p>Schedules Used</p>
+          </div>
+          <div class="stat-card">
+            <h3 id="reportAvgPerSchedule">0</h3>
+            <p>Avg per Schedule</p>
+          </div>
+        </div>
+
+        <!-- Schedule Attendance List -->
+        <h3 style="margin-bottom: 15px">Schedule Attendance Details</h3>
+        <div id="scheduleAttendanceList">
+          <p>Loading attendance data...</p>
+        </div>
       </section>
 
       <!-- Profile Section -->
@@ -299,7 +478,9 @@
     <script src="../../js/auth.js"></script>
     <script src="../../js/utils.js"></script>
     <script src="../../js/admin/mass-schedule-manager.js"></script>
-
+    <script src="../../js/admin/user-management.js"></script>
+    <script src="../../js/admin/moderator-assignment.js"></script>
+    <script src="../../js/admin/reports.js"></script>
     <script>
       // Mobile menu toggle
       const nav = document.querySelector("nav");
@@ -379,7 +560,7 @@
               userData.role.toUpperCase();
 
             document.getElementById("profileUsername").textContent =
-              user.username;
+              userData.username;
             document.getElementById("profileEmail").textContent =
               userData.email;
             document.getElementById("profileRole").textContent =

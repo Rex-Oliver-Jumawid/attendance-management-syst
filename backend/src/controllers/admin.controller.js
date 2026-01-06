@@ -385,8 +385,17 @@ exports.generateReport = async (req, res) => {
 // @access  Private (Admin)
 exports.getSystemStats = async (req, res) => {
   try {
-    const totalUsers = await User.countDocuments({ role: "user" });
-    const totalModerators = await User.countDocuments({ role: "moderator" });
+    // Count all users (including moderators, excluding admins for display)
+    const totalUsers = await User.countDocuments({
+      role: { $in: ["user", "moderator"] },
+      isActive: true,
+    });
+
+    const totalModerators = await User.countDocuments({
+      role: "moderator",
+      isActive: true,
+    });
+
     const totalAdmins = await User.countDocuments({ role: "admin" });
     const totalAttendance = await AttendanceRecord.countDocuments();
     const activeQRSessions = await AttendanceSession.countDocuments({
@@ -404,6 +413,8 @@ exports.getSystemStats = async (req, res) => {
     res.status(200).json({
       success: true,
       stats: {
+        totalUsers, // For frontend display
+        totalModerators, // For frontend display
         users: {
           total: totalUsers,
           moderators: totalModerators,
@@ -465,6 +476,118 @@ exports.updateUserStatus = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Error updating user status",
+      error: error.message,
+    });
+  }
+};
+
+// @desc    Get attendance reports with schedule breakdown
+// @route   GET /api/admin/reports/attendance
+// @access  Private (Admin)
+exports.getAttendanceReports = async (req, res) => {
+  try {
+    const { range = "day", scheduleId } = req.query;
+
+    // Calculate date range
+    const now = new Date();
+    let startDate = new Date();
+
+    switch (range) {
+      case "week":
+        startDate.setDate(now.getDate() - 7);
+        break;
+      case "month":
+        startDate.setMonth(now.getMonth() - 1);
+        break;
+      case "day":
+        startDate.setHours(0, 0, 0, 0);
+        break;
+      case "all":
+        startDate = new Date(0); // Beginning of time
+        break;
+      default:
+        startDate.setHours(0, 0, 0, 0);
+    }
+
+    // Build query
+    const query = { scannedAt: { $gte: startDate } };
+    if (scheduleId) {
+      query.scheduleId = scheduleId;
+    }
+
+    // Get attendance records with populated data
+    const records = await AttendanceRecord.find(query)
+      .populate("userId", "firstName lastName username")
+      .populate("scannedBy", "firstName lastName username")
+      .populate("scheduleId", "name massType scheduleType startTime endTime")
+      .sort({ scannedAt: -1 });
+
+    // Calculate stats
+    const totalAttendance = records.length;
+    const uniqueAttendees = new Set(
+      records.map((r) => r.userId?._id.toString())
+    ).size;
+    const schedulesUsed = new Set(
+      records.map((r) => r.scheduleId?._id.toString())
+    ).size;
+
+    // Group by schedule
+    const scheduleMap = new Map();
+
+    records.forEach((record) => {
+      if (!record.scheduleId) return;
+
+      const scheduleIdStr = record.scheduleId._id.toString();
+
+      if (!scheduleMap.has(scheduleIdStr)) {
+        scheduleMap.set(scheduleIdStr, {
+          scheduleId: scheduleIdStr,
+          scheduleName: record.scheduleId.name,
+          massType: record.scheduleId.massType,
+          scheduleType: record.scheduleId.scheduleType,
+          startTime: record.scheduleId.startTime,
+          endTime: record.scheduleId.endTime,
+          attendanceCount: 0,
+          attendees: [],
+        });
+      }
+
+      const scheduleData = scheduleMap.get(scheduleIdStr);
+      scheduleData.attendanceCount++;
+      scheduleData.attendees.push({
+        userName: record.userId
+          ? `${record.userId.firstName} ${record.userId.lastName}`
+          : "Unknown",
+        userUsername: record.userId?.username || "N/A",
+        scannedAt: record.scannedAt,
+        moderatorName: record.scannedBy
+          ? `${record.scannedBy.firstName} ${record.scannedBy.lastName}`
+          : "N/A",
+      });
+    });
+
+    const scheduleBreakdown = Array.from(scheduleMap.values()).sort(
+      (a, b) => b.attendanceCount - a.attendanceCount
+    );
+
+    res.status(200).json({
+      success: true,
+      stats: {
+        totalAttendance,
+        uniqueAttendees,
+        schedulesUsed,
+      },
+      scheduleBreakdown,
+      data: scheduleBreakdown, // For CSV export
+      range,
+      startDate,
+      endDate: now,
+    });
+  } catch (error) {
+    console.error("Error generating attendance reports:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error generating reports",
       error: error.message,
     });
   }

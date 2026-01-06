@@ -192,6 +192,13 @@ class API {
     return this.get(API_CONFIG.ENDPOINTS.ADMIN_STATS);
   }
 
+  async getAdminAttendanceReports(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.get(
+      `${API_CONFIG.ENDPOINTS.ADMIN_ATTENDANCE_REPORTS}?${queryString}`
+    );
+  }
+
   // ========== MASS SCHEDULE APIS ==========
   async getMassSchedules(active) {
     const query = active !== undefined ? `?active=${active}` : "";

@@ -1,14 +1,22 @@
 class MassScheduleManager {
   constructor() {
     this.currentSchedule = null;
+    this.activeTab = "active"; // Track current tab
     console.log("MassScheduleManager initializing...");
     this.init();
   }
 
   init() {
-    console.log("Loading schedules and attaching listeners...");
+    this.initElements();
     this.attachEventListeners();
     this.loadSchedules();
+    this.loadAdminStats();
+  }
+
+  initElements() {
+    this.activeSchedulesList = document.getElementById("activeSchedulesList");
+    this.expiredSchedulesList = document.getElementById("expiredSchedulesList");
+    this.scheduleForm = document.getElementById("scheduleForm");
   }
 
   attachEventListeners() {
@@ -16,6 +24,22 @@ class MassScheduleManager {
     const cancelBtn = document.getElementById("cancelBtn");
     const createScheduleBtn = document.getElementById("createScheduleBtn");
     const scheduleTypeSelect = document.getElementById("scheduleType");
+
+    // Tab switching
+    const activeTab = document.getElementById("activeTab");
+    const expiredTab = document.getElementById("expiredTab");
+
+    if (activeTab) {
+      activeTab.addEventListener("click", () => {
+        this.switchTab("active");
+      });
+    }
+
+    if (expiredTab) {
+      expiredTab.addEventListener("click", () => {
+        this.switchTab("expired");
+      });
+    }
 
     console.log("Form found:", !!form);
     console.log("Cancel button found:", !!cancelBtn);
@@ -79,6 +103,27 @@ class MassScheduleManager {
           specificDateInput.value = "";
         }
       });
+    }
+  }
+
+  switchTab(tab) {
+    this.activeTab = tab;
+
+    // Update tab buttons
+    document.querySelectorAll(".tab-btn").forEach((btn) => {
+      btn.classList.remove("active");
+    });
+    document
+      .getElementById(tab === "active" ? "activeTab" : "expiredTab")
+      .classList.add("active");
+
+    // Update tab content
+    if (tab === "active") {
+      this.activeSchedulesList.style.display = "block";
+      this.expiredSchedulesList.style.display = "none";
+    } else {
+      this.activeSchedulesList.style.display = "none";
+      this.expiredSchedulesList.style.display = "block";
     }
   }
 
@@ -151,192 +196,321 @@ class MassScheduleManager {
         scheduleFormDiv.style.display = "none";
       }
     } catch (error) {
-      console.error("Error saving schedule:", error);
+      console.error("Form submission error:", error);
       showError(error.message || "Failed to save schedule");
     }
   }
 
   async loadSchedules() {
-    console.log("Loading schedules...");
     try {
       const response = await api.getMassSchedules();
-      console.log("Schedules loaded:", response);
 
       if (response.success) {
-        this.renderSchedules(response.schedules);
+        // Separate active and expired schedules
+        const now = new Date();
+        const currentTime = `${String(now.getHours()).padStart(
+          2,
+          "0"
+        )}:${String(now.getMinutes()).padStart(2, "0")}`;
+        const currentDay = now.getDay();
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const activeSchedules = [];
+        const expiredSchedules = [];
+
+        response.schedules.forEach((schedule) => {
+          let isExpired = false;
+
+          if (schedule.scheduleType === "specific") {
+            // For specific date schedules, check if date has passed
+            const scheduleDate = new Date(schedule.specificDate);
+            scheduleDate.setHours(0, 0, 0, 0);
+
+            if (scheduleDate < today) {
+              isExpired = true;
+            } else if (scheduleDate.getTime() === today.getTime()) {
+              // If it's today, check if time has passed
+              if (currentTime > schedule.endTime) {
+                isExpired = true;
+              }
+            }
+          } else {
+            // For recurring schedules, check if today's time has passed
+            if (
+              schedule.dayOfWeek.includes(currentDay) &&
+              currentTime > schedule.endTime
+            ) {
+              // Only mark as "passed for today" but keep in active since it recurs
+              // Don't move recurring schedules to expired
+              isExpired = false;
+            }
+          }
+
+          if (isExpired && schedule.isActive) {
+            expiredSchedules.push(schedule);
+          } else {
+            activeSchedules.push(schedule);
+          }
+        });
+
+        this.displaySchedules(activeSchedules, this.activeSchedulesList, false);
+        this.displaySchedules(
+          expiredSchedules,
+          this.expiredSchedulesList,
+          true
+        );
+        this.loadAdminStats();
       }
     } catch (error) {
-      console.error("Error loading schedules:", error);
-      showError("Failed to load schedules");
+      console.error("Failed to load schedules:", error);
+      if (this.activeSchedulesList) {
+        this.activeSchedulesList.innerHTML = "<p>Failed to load schedules</p>";
+      }
     }
   }
 
-  renderSchedules(schedules) {
-    const container = document.getElementById("schedulesList");
-    console.log("Schedules container found:", !!container);
-    console.log("Number of schedules:", schedules?.length);
-
+  displaySchedules(schedules, container, isExpired) {
     if (!container) return;
 
-    if (!schedules || schedules.length === 0) {
-      container.innerHTML =
-        '<p style="text-align: center; color: #666;">No mass schedules yet. Create one above!</p>';
+    if (schedules.length === 0) {
+      container.innerHTML = `<p>No ${
+        isExpired ? "expired" : "active"
+      } schedules</p>`;
       return;
     }
 
-    container.innerHTML = schedules
-      .map((schedule) => this.renderScheduleCard(schedule))
+    const html = schedules
+      .map((schedule) => this.renderScheduleCard(schedule, isExpired))
       .join("");
 
-    // Attach event listeners to action buttons
-    schedules.forEach((schedule) => {
-      const editBtn = document.getElementById(`edit-${schedule._id}`);
-      const toggleBtn = document.getElementById(`toggle-${schedule._id}`);
-      const deleteBtn = document.getElementById(`delete-${schedule._id}`);
-
-      if (editBtn) {
-        editBtn.addEventListener("click", () => this.showForm(schedule));
-      }
-      if (toggleBtn) {
-        toggleBtn.addEventListener("click", () =>
-          this.toggleStatus(schedule._id, !schedule.isActive)
-        );
-      }
-      if (deleteBtn) {
-        deleteBtn.addEventListener("click", () =>
-          this.deleteSchedule(schedule._id)
-        );
-      }
-    });
+    container.innerHTML = html;
   }
 
-  renderScheduleCard(schedule) {
-    const statusBadge = schedule.isActive
-      ? '<span class="badge badge-active">Active</span>'
-      : '<span class="badge badge-inactive">Inactive</span>';
+  renderScheduleCard(schedule, isExpired) {
+    const daysOfWeek = [
+      "Sunday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+    ];
 
     let scheduleInfo = "";
     if (schedule.scheduleType === "specific") {
-      const date = new Date(schedule.specificDate);
-      scheduleInfo = `<p><strong>Date:</strong> ${date.toLocaleDateString()}</p>`;
+      scheduleInfo = `<strong>Date:</strong> ${formatDate(
+        schedule.specificDate
+      )}`;
     } else {
-      const days = schedule.dayOfWeek
-        .sort((a, b) => a - b)
-        .map((d) => ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d])
+      const dayNames = schedule.dayOfWeek
+        .map((day) => daysOfWeek[day])
         .join(", ");
-      scheduleInfo = `<p><strong>Days:</strong> ${days}</p>`;
+      scheduleInfo = `<strong>Days:</strong> ${dayNames}`;
     }
 
     return `
-      <div class="schedule-card ${!schedule.isActive ? "inactive" : ""}">
+      <div class="schedule-card ${
+        !schedule.isActive || isExpired ? "inactive" : ""
+      }">
         <div class="schedule-header">
           <h3>${schedule.name}</h3>
-          ${statusBadge}
+          <span class="badge ${
+            schedule.isActive && !isExpired ? "badge-active" : "badge-inactive"
+          }">
+            ${isExpired ? "EXPIRED" : schedule.isActive ? "ACTIVE" : "INACTIVE"}
+          </span>
         </div>
         <div class="schedule-body">
           <p><strong>Type:</strong> ${schedule.massType}</p>
-          <p><strong>Schedule Type:</strong> ${
-            schedule.scheduleType === "specific" ? "Specific Date" : "Recurring"
-          }</p>
-          ${scheduleInfo}
+          <p>${scheduleInfo}</p>
           <p><strong>Time:</strong> ${schedule.startTime} - ${
       schedule.endTime
     }</p>
+          <p><strong>Schedule Type:</strong> ${
+            schedule.scheduleType === "recurring"
+              ? "Weekly Recurring"
+              : "Specific Date"
+          }</p>
         </div>
         <div class="schedule-actions">
-          <button class="btn-edit" id="edit-${schedule._id}">Edit</button>
-          <button class="btn-toggle" id="toggle-${schedule._id}">
-            ${schedule.isActive ? "Deactivate" : "Activate"}
+          ${
+            !isExpired
+              ? `
+            <button class="btn-edit" onclick="massScheduleManager.showForm(${JSON.stringify(
+              schedule
+            ).replace(/"/g, "&quot;")})">
+              Edit
+            </button>
+            <button class="btn-toggle" onclick="massScheduleManager.toggleStatus('${
+              schedule._id
+            }', ${schedule.isActive})">
+              ${schedule.isActive ? "Deactivate" : "Activate"}
+            </button>
+          `
+              : ""
+          }
+          <button class="btn-delete" onclick="massScheduleManager.deleteSchedule('${
+            schedule._id
+          }')">
+            Delete
           </button>
-          <button class="btn-delete" id="delete-${schedule._id}">Delete</button>
         </div>
       </div>
     `;
   }
 
   showForm(schedule = null) {
-    this.currentSchedule = schedule;
-    const formTitle = document.getElementById("formTitle");
-    const scheduleTypeSelect = document.getElementById("scheduleType");
     const scheduleFormDiv = document.getElementById("scheduleForm");
-
-    // Show the form
-    if (scheduleFormDiv) {
-      scheduleFormDiv.style.display = "block";
-    }
+    const formTitle = document.getElementById("formTitle");
+    const dayOfWeekGroup = document.getElementById("dayOfWeekGroup");
+    const specificDateGroup = document.getElementById("specificDateGroup");
 
     if (schedule) {
+      this.currentSchedule = schedule;
       formTitle.textContent = "Edit Mass Schedule";
-      document.getElementById("scheduleId").value = schedule._id;
+
       document.getElementById("scheduleName").value = schedule.name;
       document.getElementById("massType").value = schedule.massType;
       document.getElementById("scheduleType").value = schedule.scheduleType;
       document.getElementById("startTime").value = schedule.startTime;
       document.getElementById("endTime").value = schedule.endTime;
-      // Removed: isActive checkbox
 
-      // Trigger schedule type change
-      scheduleTypeSelect.dispatchEvent(new Event("change"));
+      if (schedule.scheduleType === "recurring") {
+        dayOfWeekGroup.style.display = "block";
+        specificDateGroup.style.display = "none";
 
-      if (schedule.scheduleType === "specific") {
-        const date = new Date(schedule.specificDate);
-        document.getElementById("specificDate").value = date
-          .toISOString()
-          .split("T")[0];
+        document
+          .querySelectorAll('input[name="dayOfWeek"]')
+          .forEach((checkbox) => {
+            checkbox.checked = schedule.dayOfWeek.includes(
+              parseInt(checkbox.value)
+            );
+          });
       } else {
-        schedule.dayOfWeek.forEach((day) => {
-          const checkbox = document.querySelector(
-            `input[name="dayOfWeek"][value="${day}"]`
-          );
-          if (checkbox) checkbox.checked = true;
-        });
+        dayOfWeekGroup.style.display = "none";
+        specificDateGroup.style.display = "block";
+        document.getElementById("specificDate").value = schedule.specificDate
+          ? schedule.specificDate.split("T")[0]
+          : "";
       }
     } else {
+      this.currentSchedule = null;
       formTitle.textContent = "Create New Mass Schedule";
-      // Trigger to show recurring by default
-      scheduleTypeSelect.dispatchEvent(new Event("change"));
+      this.resetForm();
     }
 
-    document
-      .getElementById("scheduleFormContainer")
-      .scrollIntoView({ behavior: "smooth" });
+    if (scheduleFormDiv) {
+      scheduleFormDiv.style.display = "block";
+      scheduleFormDiv.scrollIntoView({ behavior: "smooth" });
+    }
   }
 
   resetForm() {
-    this.currentSchedule = null;
-    document.getElementById("formTitle").textContent =
-      "Create New Mass Schedule";
     const form = document.getElementById("massScheduleForm");
     if (form) {
       form.reset();
     }
-    const scheduleTypeSelect = document.getElementById("scheduleType");
-    if (scheduleTypeSelect) {
-      scheduleTypeSelect.value = "recurring";
-      scheduleTypeSelect.dispatchEvent(new Event("change"));
-    }
+    this.currentSchedule = null;
+
+    const dayOfWeekGroup = document.getElementById("dayOfWeekGroup");
+    const specificDateGroup = document.getElementById("specificDateGroup");
+    if (dayOfWeekGroup) dayOfWeekGroup.style.display = "block";
+    if (specificDateGroup) specificDateGroup.style.display = "none";
   }
+
   async toggleStatus(scheduleId, isActive) {
+    // Implementation remains the same
     try {
-      await api.updateMassSchedule(scheduleId, { isActive });
-      showSuccess(`Schedule ${isActive ? "activated" : "deactivated"}`);
+      await api.updateMassSchedule(scheduleId, { isActive: !isActive });
+      showSuccess(
+        `Schedule ${!isActive ? "activated" : "deactivated"} successfully!`
+      );
       this.loadSchedules();
     } catch (error) {
-      showError("Failed to update schedule status");
+      showError(error.message || "Failed to update schedule status");
     }
   }
 
   async deleteSchedule(scheduleId) {
-    if (!confirm("Are you sure you want to delete this schedule?")) {
+    if (
+      !confirm(
+        "Are you sure you want to delete this schedule? This action cannot be undone."
+      )
+    ) {
       return;
     }
 
     try {
       await api.deleteMassSchedule(scheduleId);
-      showSuccess("Schedule deleted successfully");
+      showSuccess("Schedule deleted successfully!");
       this.loadSchedules();
     } catch (error) {
-      showError("Failed to delete schedule");
+      showError(error.message || "Failed to delete schedule");
+    }
+  }
+
+  async loadAdminStats() {
+    try {
+      const statsResponse = await api.getSystemStats();
+      const schedulesResponse = await api.getMassSchedules();
+
+      if (statsResponse.success) {
+        const stats = statsResponse.stats;
+
+        document.getElementById("totalUsers").textContent =
+          stats.totalUsers || 0;
+        document.getElementById("totalModerators").textContent =
+          stats.totalModerators || 0;
+
+        // Calculate active and expired schedules
+        if (schedulesResponse.schedules) {
+          const now = new Date();
+          const currentTime = `${String(now.getHours()).padStart(
+            2,
+            "0"
+          )}:${String(now.getMinutes()).padStart(2, "0")}`;
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+
+          let activeCount = 0;
+          let expiredCount = 0;
+
+          schedulesResponse.schedules.forEach((schedule) => {
+            let isExpired = false;
+
+            if (schedule.scheduleType === "specific") {
+              const scheduleDate = new Date(schedule.specificDate);
+              scheduleDate.setHours(0, 0, 0, 0);
+
+              if (scheduleDate < today) {
+                isExpired = true;
+              } else if (scheduleDate.getTime() === today.getTime()) {
+                if (currentTime > schedule.endTime) {
+                  isExpired = true;
+                }
+              }
+            }
+            // Recurring schedules never expire
+
+            if (isExpired && schedule.isActive) {
+              expiredCount++;
+            } else {
+              activeCount++;
+            }
+          });
+
+          document.getElementById("activeSchedules").textContent = activeCount;
+          document.getElementById("expiredSchedules").textContent =
+            expiredCount;
+        } else {
+          document.getElementById("activeSchedules").textContent = 0;
+          document.getElementById("expiredSchedules").textContent = 0;
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load admin stats:", error);
     }
   }
 }
