@@ -300,7 +300,7 @@ class MassScheduleManager {
 
     let scheduleInfo = "";
     if (schedule.scheduleType === "specific") {
-      scheduleInfo = `<strong>Date:</strong> ${formatDate(
+      scheduleInfo = `<strong>Date:</strong> ${formatDateShort(
         schedule.specificDate
       )}`;
     } else {

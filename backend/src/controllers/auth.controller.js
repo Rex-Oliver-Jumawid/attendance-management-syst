@@ -35,7 +35,7 @@ exports.register = async (req, res) => {
       firstName,
       lastName,
       phoneNumber,
-      role: "user",
+      role: "member",
     });
 
     console.log("✅ User created:", user._id);

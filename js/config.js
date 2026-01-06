@@ -18,12 +18,18 @@ const API_CONFIG = {
     MODERATOR_RECENT_SCANS: "/moderator/attendance/recent",
     MODERATOR_ACTIVE_SESSIONS: "/moderator/sessions/active",
     MODERATOR_STATS: "/moderator/stats",
+    MODERATOR_REGISTER_USER: "/moderator/users/register",
+    MODERATOR_GET_USERS: "/moderator/users",
+    MODERATOR_UPDATE_USER_STATUS: "/moderator/users/:id/status",
+    MODERATOR_CONTRIBUTIONS: "/moderator/contributions",
+    MODERATOR_EXPENSES: "/moderator/expenses",
 
     // Admin endpoints
     ADMIN_USERS: "/admin/users",
     ADMIN_USER_BY_ID: "/admin/users",
     ADMIN_UPDATE_USER_STATUS: "/admin/users",
     ADMIN_MODERATORS: "/admin/moderators",
+    ADMIN_CREATE_MODERATOR: "/admin/moderators/create",
     ADMIN_ASSIGN_MODERATOR: "/admin/moderators/assign",
     ADMIN_REMOVE_MODERATOR: "/admin/moderators",
     ADMIN_REPORTS: "/admin/reports",

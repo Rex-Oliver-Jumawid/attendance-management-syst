@@ -26,6 +26,12 @@
 
     <link rel="stylesheet" href="../../css/inside.css" />
     <link rel="stylesheet" href="../../css/admin/admin-dashboard.css" />
+    <style>
+      #financeContribTab:not(.active):hover,
+      #financeExpensesTab:not(.active):hover {
+        background-color: #e0e0e0 !important;
+      }
+    </style>
   </head>
   <body>
     <nav>
@@ -48,9 +54,9 @@
           </a>
           <a href="#users-section" class="nav-link">
             <img
-              src="../../images/icons/user (2).png"
+              src="../../images/icons/address-book.png"
               class="nav-link-img"
-            />Users
+            />Members
           </a>
           <a href="#moderators-section" class="nav-link">
             <img
@@ -63,6 +69,12 @@
               src="../../images/icons/report.png"
               class="nav-link-img"
             />Reports
+          </a>
+          <a href="#finance-section" class="nav-link">
+            <img
+              src="../../images/icons/money.png"
+              class="nav-link-img"
+            />Finance
           </a>
           <a href="#profile-section" class="nav-link">
             <img
@@ -95,7 +107,7 @@
         <div class="stats-grid" id="adminStats">
           <div class="stat-card">
             <h3 id="totalUsers">0</h3>
-            <p>Total Users</p>
+            <p>Total Members</p>
           </div>
           <div class="stat-card">
             <h3 id="totalModerators">0</h3>
@@ -290,7 +302,7 @@
             "
           >
             <option value="">All Roles</option>
-            <option value="user">Users</option>
+            <option value="member">Members</option>
             <option value="moderator">Moderators</option>
             <option value="admin">Admins</option>
           </select>
@@ -339,20 +351,175 @@
         style="display: none"
       >
         <h2>Moderator Management</h2>
-        <p>Assign and manage moderators</p>
+        <p>Create new moderator accounts or assign existing users</p>
 
-        <!-- Assign New Moderator -->
-        <div class="form-container" style="margin-bottom: 30px">
-          <h3>Assign New Moderator</h3>
+        <!-- Toggle Between Create and Assign -->
+        <div style="margin-bottom: 20px; display: flex; gap: 10px">
+          <button
+            id="showCreateModeratorBtn"
+            class="btn-filter active"
+            style="
+              padding: 10px 20px;
+              font-size: 14px;
+              font-weight: 600;
+              border-radius: 6px;
+            "
+          >
+            Create New Moderator
+          </button>
+          <button
+            id="showAssignModeratorBtn"
+            class="btn-filter"
+            style="
+              padding: 10px 20px;
+              font-size: 14px;
+              font-weight: 600;
+              border-radius: 6px;
+            "
+          >
+            Assign Existing Member
+          </button>
+        </div>
+
+        <!-- Create New Moderator Form -->
+        <div
+          id="createModeratorContainer"
+          class="form-container"
+          style="margin-bottom: 30px"
+        >
+          <h3>Create New Moderator Account</h3>
+          <form id="createModeratorForm">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="modFirstName">First Name *</label>
+                <input
+                  type="text"
+                  id="modFirstName"
+                  placeholder="Enter first name"
+                  required
+                />
+              </div>
+              <div class="form-group">
+                <label for="modLastName">Last Name *</label>
+                <input
+                  type="text"
+                  id="modLastName"
+                  placeholder="Enter last name"
+                  required
+                />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="modEmail">Email *</label>
+              <input
+                type="email"
+                id="modEmail"
+                placeholder="moderator@example.com"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="modUsername">Username *</label>
+              <input
+                type="text"
+                id="modUsername"
+                placeholder="Choose a username"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="modPassword">Password *</label>
+              <input
+                type="password"
+                id="modPassword"
+                placeholder="Enter password (min. 6 characters)"
+                required
+                minlength="6"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="modConfirmPassword">Confirm Password *</label>
+              <input
+                type="password"
+                id="modConfirmPassword"
+                placeholder="Confirm password"
+                required
+                minlength="6"
+              />
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" class="btn-primary">
+                Create Moderator Account
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Assign Existing Member as Moderator -->
+        <div
+          id="assignModeratorContainer"
+          class="form-container"
+          style="margin-bottom: 30px; display: none"
+        >
+          <h3>Assign Existing Member as Moderator</h3>
           <form id="assignModeratorForm">
             <div class="form-group">
-              <label for="userToAssign">Select User *</label>
+              <label for="userToAssign">Select Member *</label>
               <select id="userToAssign" required>
-                <option value="">-- Select a user --</option>
+                <option value="">-- Select a member --</option>
               </select>
               <small style="color: #666; display: block; margin-top: 5px">
-                Only active users with 'user' role are shown
+                Only active members with 'member' role are shown
               </small>
+            </div>
+
+            <div class="form-group">
+              <label for="assignUsername">Set Username *</label>
+              <input
+                type="text"
+                id="assignUsername"
+                placeholder="Enter username (min. 3 characters)"
+                required
+                minlength="3"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="assignUsername">Set Username *</label>
+              <input
+                type="text"
+                id="assignUsername"
+                placeholder="Enter username for login"
+                required
+                minlength="3"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="assignPassword">Set New Password *</label>
+              <input
+                type="password"
+                id="assignPassword"
+                placeholder="Enter new password (min. 6 characters)"
+                required
+                minlength="6"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="assignConfirmPassword">Confirm Password *</label>
+              <input
+                type="password"
+                id="assignConfirmPassword"
+                placeholder="Confirm new password"
+                required
+                minlength="6"
+              />
             </div>
 
             <div class="form-actions">
@@ -398,10 +565,7 @@
               Today
             </button>
             <button class="btn-filter" data-range="week" id="reportWeekBtn">
-              This Week
-            </button>
-            <button class="btn-filter" data-range="month" id="reportMonthBtn">
-              This Month
+              Reports
             </button>
             <button class="btn-filter" data-range="all" id="reportAllBtn">
               All Time
@@ -413,7 +577,7 @@
             id="refreshReportsBtn"
             style="margin-left: auto"
           >
-            🔄 Refresh
+            Refresh
           </button>
         </div>
 
@@ -470,6 +634,185 @@
           </div>
         </div>
       </section>
+
+      <!-- Finance Section -->
+      <section
+        id="finance-section"
+        class="finance-section"
+        style="display: none"
+      >
+        <h2>Financial Dashboard</h2>
+        <p>View and manage church finances</p>
+
+        <!-- Finance Summary Cards -->
+        <div class="stats-grid" style="margin-bottom: 30px">
+          <div class="stat-card">
+            <h3 id="totalContributions">₱0.00</h3>
+            <p>Total Contributions</p>
+          </div>
+          <div class="stat-card">
+            <h3 id="totalExpenses">₱0.00</h3>
+            <p>Total Expenses</p>
+          </div>
+          <div class="stat-card">
+            <h3 id="netBalance">₱0.00</h3>
+            <p>Net Balance</p>
+          </div>
+        </div>
+
+        <!-- Filter Controls -->
+        <div
+          style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap"
+        >
+          <select
+            id="financeFilterMonth"
+            style="padding: 8px; border: 1px solid #ddd; border-radius: 4px"
+          >
+            <option value="">All Months</option>
+            <option value="1">January</option>
+            <option value="2">February</option>
+            <option value="3">March</option>
+            <option value="4">April</option>
+            <option value="5">May</option>
+            <option value="6">June</option>
+            <option value="7">July</option>
+            <option value="8">August</option>
+            <option value="9">September</option>
+            <option value="10">October</option>
+            <option value="11">November</option>
+            <option value="12">December</option>
+          </select>
+          <select
+            id="financeFilterYear"
+            style="padding: 8px; border: 1px solid #ddd; border-radius: 4px"
+          >
+            <option value="">All Years</option>
+          </select>
+          <button
+            id="financeRefresh"
+            class="btn-primary"
+            style="padding: 8px 20px"
+          >
+            Refresh
+          </button>
+        </div>
+
+        <!-- Tabs for Contributions and Expenses -->
+        <div style="margin-bottom: 20px; display: flex; gap: 10px">
+          <button
+            id="financeContribTab"
+            class="btn-filter active"
+            style="
+              padding: 12px 24px;
+              font-size: 15px;
+              font-weight: 600;
+              border-radius: 8px;
+              transition: all 0.3s ease;
+              box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+              cursor: pointer;
+            "
+          >
+            Contributions
+          </button>
+          <button
+            id="financeExpensesTab"
+            class="btn-filter"
+            style="
+              padding: 12px 24px;
+              font-size: 15px;
+              font-weight: 600;
+              border-radius: 8px;
+              transition: all 0.3s ease;
+              box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+              cursor: pointer;
+            "
+          >
+            Expenses
+          </button>
+        </div>
+
+        <!-- Contributions Table -->
+        <div id="financeContribSection" class="table-container">
+          <h3>Contributions</h3>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>User</th>
+                <th>Schedule</th>
+                <th>Amount</th>
+                <th>Recorded By</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody id="financeContribTableBody">
+              <tr>
+                <td colspan="6" style="text-align: center">Loading...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Expenses Table -->
+        <div
+          id="financeExpensesSection"
+          class="table-container"
+          style="display: none"
+        >
+          <h3>Expenses</h3>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Description</th>
+                <th>Category</th>
+                <th>Amount</th>
+                <th>Month/Year</th>
+                <th>Recorded By</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody id="financeExpensesTableBody">
+              <tr>
+                <td colspan="7" style="text-align: center">Loading...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Monthly Breakdown Chart -->
+        <div
+          style="
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 30px;
+          "
+        >
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-bottom: 15px;
+            "
+          >
+            <h3 style="margin: 0">Monthly Breakdown</h3>
+            <select
+              id="monthlyBreakdownYear"
+              style="
+                padding: 8px 12px;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                font-size: 14px;
+              "
+            >
+              <option value="">Select Year</option>
+            </select>
+          </div>
+          <div id="monthlyBreakdown"></div>
+        </div>
+      </section>
     </div>
 
     <!-- Scripts -->
@@ -481,6 +824,7 @@
     <script src="../../js/admin/user-management.js"></script>
     <script src="../../js/admin/moderator-assignment.js"></script>
     <script src="../../js/admin/reports.js"></script>
+    <script src="../../js/admin/finance.js"></script>
     <script>
       // Mobile menu toggle
       const nav = document.querySelector("nav");
@@ -525,6 +869,25 @@
             // Show target section
             if (targetSection) {
               targetSection.style.display = "block";
+            }
+
+            // Reload data when navigating to specific sections
+            if (
+              targetId === "schedules-section" &&
+              window.massScheduleManager
+            ) {
+              window.massScheduleManager.loadSchedules();
+            } else if (
+              targetId === "reports-section" &&
+              window.reportsManager
+            ) {
+              window.reportsManager.loadReports();
+            } else if (
+              targetId === "moderators-section" &&
+              window.moderatorAssignment
+            ) {
+              window.moderatorAssignment.loadModerators();
+              window.moderatorAssignment.loadAvailableUsers();
             }
 
             // Update active link

@@ -18,12 +18,43 @@ class ModeratorAssignment {
     this.moderatorsList = document.getElementById("moderatorsList");
     this.assignForm = document.getElementById("assignModeratorForm");
     this.userSelect = document.getElementById("userToAssign");
+    this.createForm = document.getElementById("createModeratorForm");
+    this.createContainer = document.getElementById("createModeratorContainer");
+    this.assignContainer = document.getElementById("assignModeratorContainer");
+    this.showCreateBtn = document.getElementById("showCreateModeratorBtn");
+    this.showAssignBtn = document.getElementById("showAssignModeratorBtn");
   }
 
   attachEventListeners() {
     if (this.assignForm) {
       this.assignForm.addEventListener("submit", (e) => this.handleAssign(e));
     }
+
+    if (this.createForm) {
+      this.createForm.addEventListener("submit", (e) => this.handleCreate(e));
+    }
+
+    if (this.showCreateBtn) {
+      this.showCreateBtn.addEventListener("click", () => this.showCreateForm());
+    }
+
+    if (this.showAssignBtn) {
+      this.showAssignBtn.addEventListener("click", () => this.showAssignForm());
+    }
+  }
+
+  showCreateForm() {
+    this.createContainer.style.display = "block";
+    this.assignContainer.style.display = "none";
+    this.showCreateBtn.classList.add("active");
+    this.showAssignBtn.classList.remove("active");
+  }
+
+  showAssignForm() {
+    this.createContainer.style.display = "none";
+    this.assignContainer.style.display = "block";
+    this.showCreateBtn.classList.remove("active");
+    this.showAssignBtn.classList.add("active");
   }
 
   async loadModerators() {
@@ -45,7 +76,10 @@ class ModeratorAssignment {
 
   async loadAvailableUsers() {
     try {
-      const response = await api.getAllUsers({ role: "user", isActive: true });
+      const response = await api.getAllUsers({
+        role: "member",
+        isActive: true,
+      });
 
       if (response.success) {
         this.availableUsers = response.users;
@@ -98,7 +132,7 @@ class ModeratorAssignment {
           <div class="moderator-actions">
             <button 
               class="btn-delete" 
-              onclick="moderatorAssignment.removeModerator('${mod._id}', '${mod.firstName} ${mod.lastName}')"
+              onclick="if(window.moderatorAssignment) { window.moderatorAssignment.removeModerator('${mod._id}', '${mod.firstName} ${mod.lastName}'); }"
             >
               Remove Moderator Role
             </button>
@@ -115,18 +149,42 @@ class ModeratorAssignment {
     e.preventDefault();
 
     const userId = this.userSelect.value;
-    const notes = this.notesInput.value.trim();
+    const username = document.getElementById("assignUsername").value.trim();
+    const password = document.getElementById("assignPassword").value;
+    const confirmPassword = document.getElementById(
+      "assignConfirmPassword"
+    ).value;
 
     if (!userId) {
-      showError("Please select a user");
+      showError("Please select a member");
+      return;
+    }
+
+    if (!username) {
+      showError("Username is required");
+      return;
+    }
+
+    if (!password || !confirmPassword) {
+      showError("Password is required");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      showError("Passwords do not match");
+      return;
+    }
+
+    if (password.length < 6) {
+      showError("Password must be at least 6 characters");
       return;
     }
 
     try {
-      const response = await api.assignModerator(userId);
+      const response = await api.assignModerator(userId, username, password);
 
       if (response.success) {
-        showSuccess("Moderator assigned successfully!");
+        showSuccess("Member assigned as moderator successfully!");
         this.assignForm.reset();
         await this.loadModerators();
         await this.loadAvailableUsers();
@@ -136,24 +194,85 @@ class ModeratorAssignment {
     }
   }
 
-  async removeModerator(userId, name) {
-    if (
-      !confirm(
-        `Are you sure you want to remove moderator role from ${name}? They will be changed back to a regular user.`
-      )
-    ) {
+  async handleCreate(e) {
+    e.preventDefault();
+
+    const firstName = document.getElementById("modFirstName").value.trim();
+    const lastName = document.getElementById("modLastName").value.trim();
+    const email = document.getElementById("modEmail").value.trim();
+    const username = document.getElementById("modUsername").value.trim();
+    const password = document.getElementById("modPassword").value;
+    const confirmPassword = document.getElementById("modConfirmPassword").value;
+
+    // Validation
+    if (!firstName || !lastName || !email || !username || !password) {
+      showError("All fields are required");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      showError("Passwords do not match");
+      return;
+    }
+
+    if (password.length < 6) {
+      showError("Password must be at least 6 characters");
       return;
     }
 
     try {
+      const response = await api.createModerator({
+        firstName,
+        lastName,
+        email,
+        username,
+        password,
+      });
+
+      if (response.success) {
+        showSuccess("Moderator account created successfully!");
+        this.createForm.reset();
+        await this.loadModerators();
+      }
+    } catch (error) {
+      showError(error.message || "Failed to create moderator");
+    }
+  }
+
+  async removeModerator(userId, name) {
+    console.log("removeModerator called with:", { userId, name });
+
+    if (!userId) {
+      showError("Invalid user ID");
+      console.error("Remove moderator called with invalid userId:", userId);
+      return;
+    }
+
+    if (
+      !confirm(
+        `Are you sure you want to remove moderator role from ${name}? They will be changed back to a regular member.`
+      )
+    ) {
+      console.log("User cancelled removal");
+      return;
+    }
+
+    try {
+      console.log("Calling api.removeModerator with userId:", userId);
       const response = await api.removeModerator(userId);
+      console.log("API response:", response);
 
       if (response.success) {
         showSuccess("Moderator role removed successfully!");
         await this.loadModerators();
         await this.loadAvailableUsers();
+        this.refreshAdminStats();
+      } else {
+        console.error("Remove failed with response:", response);
+        showError(response.message || "Failed to remove moderator");
       }
     } catch (error) {
+      console.error("Remove moderator error:", error);
       showError(error.message || "Failed to remove moderator");
     }
   }
@@ -174,6 +293,8 @@ class ModeratorAssignment {
 
 // Initialize when moderators section is loaded
 let moderatorAssignment;
+window.moderatorAssignment = null; // Make it globally accessible
+
 document.addEventListener("DOMContentLoaded", () => {
   const moderatorsLink = document.querySelector(
     'a[href="#moderators-section"]'
@@ -182,6 +303,11 @@ document.addEventListener("DOMContentLoaded", () => {
     moderatorsLink.addEventListener("click", () => {
       if (!moderatorAssignment) {
         moderatorAssignment = new ModeratorAssignment();
+        window.moderatorAssignment = moderatorAssignment; // Assign to window
+      } else {
+        // Reload data when navigating back to the section
+        moderatorAssignment.loadModerators();
+        moderatorAssignment.loadAvailableUsers();
       }
     });
   }

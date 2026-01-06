@@ -6,6 +6,7 @@ const {
   assignModerator,
   removeModerator,
   getAllModerators,
+  createModerator,
   generateReport,
   getSystemStats,
   updateUserStatus,
@@ -30,6 +31,7 @@ router.put("/users/:id/status", updateUserStatus);
 
 // Moderator management routes
 router.get("/moderators", getAllModerators);
+router.post("/moderators/create", createModerator);
 router.post("/moderators/assign", assignModerator);
 router.delete("/moderators/:id", removeModerator);
 

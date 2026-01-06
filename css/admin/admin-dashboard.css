@@ -448,7 +448,7 @@ section.active {
 }
 
 /* Badge Styles */
-.badge-user {
+.badge-member {
   background: #e3f2fd;
   color: #1976d2;
 }
@@ -466,6 +466,30 @@ section.active {
 .btn-small {
   padding: 6px 12px;
   font-size: 13px;
+}
+
+/* Filter Buttons */
+.btn-filter {
+  background: white;
+  color: #0c1014;
+  border: 2px solid #e0e0e0;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-filter:hover {
+  border-color: #0c1014;
+  background: #f8f9fa;
+}
+
+.btn-filter.active {
+  background: #0c1014;
+  color: white;
+  border-color: #0c1014;
 }
 
 /* Moderator Cards */
@@ -521,4 +545,71 @@ section.active {
 .tab-btn.active {
   color: #0c1014;
   border-bottom-color: #0c1014;
+}
+
+/* Table Container - Full Width Responsive */
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+  margin: 20px 0;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.data-table th,
+.data-table td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.data-table th {
+  background-color: #f5f5f5;
+  font-weight: 600;
+  color: #0c1014;
+  text-transform: uppercase;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+}
+
+.data-table tbody tr:hover {
+  background-color: #f9f9f9;
+}
+
+.data-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Responsive Table Adjustments */
+@media (max-width: 768px) {
+  .btn-filter {
+    padding: 8px 15px;
+    font-size: 13px;
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: 8px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .btn-filter {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: 6px;
+    font-size: 12px;
+  }
 }

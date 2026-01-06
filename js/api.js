@@ -86,6 +86,15 @@ class API {
     });
   }
 
+  // PATCH request
+  async patch(endpoint, body, options = {}) {
+    return this.request(endpoint, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+      ...options,
+    });
+  }
+
   // ========== AUTH APIS ==========
   async register(userData) {
     return this.post(API_CONFIG.ENDPOINTS.REGISTER, userData, { auth: false });
@@ -149,6 +158,40 @@ class API {
     return this.get(`${API_CONFIG.ENDPOINTS.MODERATOR_STATS}?${queryString}`);
   }
 
+  async registerUser(userData) {
+    return this.post(API_CONFIG.ENDPOINTS.MODERATOR_REGISTER_USER, userData);
+  }
+
+  async getAllUsersForModerator() {
+    return this.get(API_CONFIG.ENDPOINTS.MODERATOR_GET_USERS);
+  }
+
+  async updateUserStatusAsModerator(userId, isActive) {
+    return this.put(
+      API_CONFIG.ENDPOINTS.MODERATOR_UPDATE_USER_STATUS.replace(":id", userId),
+      { isActive }
+    );
+  }
+
+  async addContribution(contributionData) {
+    return this.post(
+      API_CONFIG.ENDPOINTS.MODERATOR_CONTRIBUTIONS,
+      contributionData
+    );
+  }
+
+  async getAllContributions() {
+    return this.get(API_CONFIG.ENDPOINTS.MODERATOR_CONTRIBUTIONS);
+  }
+
+  async addExpense(expenseData) {
+    return this.post(API_CONFIG.ENDPOINTS.MODERATOR_EXPENSES, expenseData);
+  }
+
+  async getAllExpenses() {
+    return this.get(API_CONFIG.ENDPOINTS.MODERATOR_EXPENSES);
+  }
+
   // ========== ADMIN APIS ==========
   async getAllUsers(params = {}) {
     const queryString = new URLSearchParams(params).toString();
@@ -170,10 +213,18 @@ class API {
     return this.get(API_CONFIG.ENDPOINTS.ADMIN_MODERATORS);
   }
 
-  async assignModerator(userId, notes) {
+  async createModerator(moderatorData) {
+    return this.post(
+      API_CONFIG.ENDPOINTS.ADMIN_CREATE_MODERATOR,
+      moderatorData
+    );
+  }
+
+  async assignModerator(userId, username, password) {
     return this.post(API_CONFIG.ENDPOINTS.ADMIN_ASSIGN_MODERATOR, {
       userId,
-      notes,
+      username,
+      password,
     });
   }
 

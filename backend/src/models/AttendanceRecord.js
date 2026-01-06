@@ -9,7 +9,7 @@ const attendanceRecordSchema = new mongoose.Schema({
   sessionId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "AttendanceSession",
-    required: true,
+    required: false, // Optional for permanent QR codes
   },
   moderatorId: {
     type: mongoose.Schema.Types.ObjectId,

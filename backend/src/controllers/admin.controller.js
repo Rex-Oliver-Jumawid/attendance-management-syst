@@ -2,6 +2,7 @@ const User = require("../models/User");
 const ModeratorAssignment = require("../models/ModeratorAssignment");
 const AttendanceRecord = require("../models/AttendanceRecord");
 const AttendanceSession = require("../models/AttendanceSession");
+const MassSchedule = require("../models/MassSchedule");
 
 // @desc    Get all users
 // @route   GET /api/admin/users
@@ -88,13 +89,46 @@ exports.getUserById = async (req, res) => {
 // @access  Private (Admin)
 exports.assignModerator = async (req, res) => {
   try {
-    const { userId, notes } = req.body;
+    const { userId, username, password } = req.body;
     const adminId = req.user.id;
 
     if (!userId) {
       return res.status(400).json({
         success: false,
         message: "User ID is required",
+      });
+    }
+
+    if (!username) {
+      return res.status(400).json({
+        success: false,
+        message: "Username is required for moderators",
+      });
+    }
+
+    if (!password) {
+      return res.status(400).json({
+        success: false,
+        message: "Password is required",
+      });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: "Password must be at least 6 characters",
+      });
+    }
+
+    // Check if username is already taken
+    const existingUsername = await User.findOne({
+      username,
+      _id: { $ne: userId },
+    });
+    if (existingUsername) {
+      return res.status(400).json({
+        success: false,
+        message: "Username already taken",
       });
     }
 
@@ -122,15 +156,17 @@ exports.assignModerator = async (req, res) => {
       });
     }
 
-    // Update user role
+    // Update user role, username, and password
     user.role = "moderator";
+    user.username = username;
+    user.password = password; // Will be hashed by pre-save middleware
     await user.save();
 
     // Create moderator assignment record
     const assignment = await ModeratorAssignment.create({
       moderatorId: userId,
       assignedBy: adminId,
-      notes,
+      notes: "Assigned as moderator with new password",
       isActive: true,
     });
 
@@ -162,8 +198,10 @@ exports.assignModerator = async (req, res) => {
 exports.removeModerator = async (req, res) => {
   try {
     const userId = req.params.id;
+    console.log("Attempting to remove moderator with ID:", userId);
 
     const user = await User.findById(userId);
+    console.log("Found user:", user ? user.username : "null");
 
     if (!user) {
       return res.status(404).json({
@@ -173,21 +211,26 @@ exports.removeModerator = async (req, res) => {
     }
 
     if (user.role !== "moderator") {
+      console.log("User role is not moderator, it is:", user.role);
       return res.status(400).json({
         success: false,
         message: "User is not a moderator",
       });
     }
 
-    // Change role back to user
-    user.role = "user";
+    // Change role back to member and clear credentials
+    user.role = "member";
+    user.username = undefined;
+    user.password = undefined;
     await user.save();
+    console.log("User role changed to member and credentials cleared");
 
     // Deactivate assignment
     await ModeratorAssignment.updateMany(
       { moderatorId: userId },
       { isActive: false }
     );
+    console.log("Moderator assignments deactivated");
 
     res.status(200).json({
       success: true,
@@ -199,6 +242,7 @@ exports.removeModerator = async (req, res) => {
       },
     });
   } catch (error) {
+    console.error("Error in removeModerator:", error);
     res.status(500).json({
       success: false,
       message: "Error removing moderator",
@@ -238,6 +282,84 @@ exports.getAllModerators = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Error fetching moderators",
+      error: error.message,
+    });
+  }
+};
+
+// @desc    Create new moderator account
+// @route   POST /api/admin/moderators/create
+// @access  Private (Admin)
+exports.createModerator = async (req, res) => {
+  try {
+    const { firstName, lastName, email, username, password } = req.body;
+    const adminId = req.user.id;
+
+    // Validation
+    if (!firstName || !lastName || !email || !username || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "All fields are required",
+      });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: "Password must be at least 6 characters",
+      });
+    }
+
+    // Check if username or email already exists
+    const existingUser = await User.findOne({
+      $or: [{ username }, { email }],
+    });
+
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message:
+          existingUser.username === username
+            ? "Username already exists"
+            : "Email already exists",
+      });
+    }
+
+    // Create new moderator user
+    const moderator = await User.create({
+      firstName,
+      lastName,
+      email,
+      username,
+      password, // Will be hashed by pre-save middleware
+      role: "moderator",
+      isActive: true,
+    });
+
+    // Create moderator assignment record
+    await ModeratorAssignment.create({
+      moderatorId: moderator._id,
+      assignedBy: adminId,
+      notes: "Created as new moderator account",
+      isActive: true,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Moderator account created successfully",
+      moderator: {
+        id: moderator._id,
+        username: moderator.username,
+        email: moderator.email,
+        role: moderator.role,
+        firstName: moderator.firstName,
+        lastName: moderator.lastName,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error creating moderator",
       error: error.message,
     });
   }
@@ -385,9 +507,9 @@ exports.generateReport = async (req, res) => {
 // @access  Private (Admin)
 exports.getSystemStats = async (req, res) => {
   try {
-    // Count all users (including moderators, excluding admins for display)
+    // Count only members (excluding moderators and admins)
     const totalUsers = await User.countDocuments({
-      role: { $in: ["user", "moderator"] },
+      role: "member",
       isActive: true,
     });
 
@@ -486,7 +608,9 @@ exports.updateUserStatus = async (req, res) => {
 // @access  Private (Admin)
 exports.getAttendanceReports = async (req, res) => {
   try {
+    console.log("=== getAttendanceReports START ===");
     const { range = "day", scheduleId } = req.query;
+    console.log("Range:", range, "ScheduleId:", scheduleId);
 
     // Calculate date range
     const now = new Date();
@@ -509,6 +633,8 @@ exports.getAttendanceReports = async (req, res) => {
         startDate.setHours(0, 0, 0, 0);
     }
 
+    console.log("Date range:", startDate, "to", now);
+
     // Build query
     const query = { scannedAt: { $gte: startDate } };
     if (scheduleId) {
@@ -518,57 +644,117 @@ exports.getAttendanceReports = async (req, res) => {
     // Get attendance records with populated data
     const records = await AttendanceRecord.find(query)
       .populate("userId", "firstName lastName username")
-      .populate("scannedBy", "firstName lastName username")
-      .populate("scheduleId", "name massType scheduleType startTime endTime")
+      .populate("moderatorId", "firstName lastName username")
       .sort({ scannedAt: -1 });
+
+    console.log(`Found ${records.length} attendance records`);
 
     // Calculate stats
     const totalAttendance = records.length;
     const uniqueAttendees = new Set(
       records.map((r) => r.userId?._id.toString())
     ).size;
-    const schedulesUsed = new Set(
-      records.map((r) => r.scheduleId?._id.toString())
-    ).size;
 
-    // Group by schedule
-    const scheduleMap = new Map();
+    // For "day" range, get schedules for today and match them with attendance
+    let scheduleBreakdown = [];
 
-    records.forEach((record) => {
-      if (!record.scheduleId) return;
+    if (range === "day") {
+      const today = new Date();
+      const dayOfWeek = today.getDay();
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const todayEnd = new Date();
+      todayEnd.setHours(23, 59, 59, 999);
 
-      const scheduleIdStr = record.scheduleId._id.toString();
+      // Find all schedules for today
+      const todaySchedules = await MassSchedule.find({
+        isActive: true,
+        $or: [
+          {
+            scheduleType: "recurring",
+            dayOfWeek: dayOfWeek,
+          },
+          {
+            scheduleType: "specific",
+            specificDate: {
+              $gte: todayStart,
+              $lte: todayEnd,
+            },
+          },
+        ],
+      });
 
-      if (!scheduleMap.has(scheduleIdStr)) {
-        scheduleMap.set(scheduleIdStr, {
-          scheduleId: scheduleIdStr,
-          scheduleName: record.scheduleId.name,
-          massType: record.scheduleId.massType,
-          scheduleType: record.scheduleId.scheduleType,
-          startTime: record.scheduleId.startTime,
-          endTime: record.scheduleId.endTime,
-          attendanceCount: 0,
-          attendees: [],
+      console.log(
+        `Found ${todaySchedules.length} schedules for today (day ${dayOfWeek})`
+      );
+
+      // Create breakdown for each schedule
+      todaySchedules.forEach((schedule) => {
+        // Filter records that match this schedule's mass type and time
+        const scheduleRecords = records.filter((record) => {
+          return record.massType === schedule.massType;
         });
-      }
 
-      const scheduleData = scheduleMap.get(scheduleIdStr);
-      scheduleData.attendanceCount++;
-      scheduleData.attendees.push({
+        const attendees = scheduleRecords.map((record) => ({
+          userName: record.userId
+            ? `${record.userId.firstName} ${record.userId.lastName}`
+            : "Unknown",
+          userUsername: record.userId?.username || "N/A",
+          scannedAt: record.scannedAt,
+          moderatorName: record.moderatorId
+            ? `${record.moderatorId.firstName} ${record.moderatorId.lastName}`
+            : "N/A",
+        }));
+
+        scheduleBreakdown.push({
+          scheduleId: schedule._id.toString(),
+          scheduleName: schedule.name,
+          massType: schedule.massType,
+          scheduleType: schedule.scheduleType,
+          startTime: schedule.startTime,
+          endTime: schedule.endTime,
+          attendanceCount: scheduleRecords.length,
+          attendees: attendees,
+        });
+      });
+
+      // Sort by start time
+      scheduleBreakdown.sort((a, b) => {
+        if (!a.startTime || !b.startTime) return 0;
+        return a.startTime.localeCompare(b.startTime);
+      });
+    } else {
+      // For other ranges (week, month, all), return all records in a single breakdown
+      // The frontend will handle grouping by week/month/user
+      const allAttendees = records.map((record) => ({
         userName: record.userId
           ? `${record.userId.firstName} ${record.userId.lastName}`
           : "Unknown",
         userUsername: record.userId?.username || "N/A",
         scannedAt: record.scannedAt,
-        moderatorName: record.scannedBy
-          ? `${record.scannedBy.firstName} ${record.scannedBy.lastName}`
+        scheduleName: record.massType || "Other",
+        massType: record.massType || "Other",
+        moderatorName: record.moderatorId
+          ? `${record.moderatorId.firstName} ${record.moderatorId.lastName}`
           : "N/A",
-      });
-    });
+      }));
 
-    const scheduleBreakdown = Array.from(scheduleMap.values()).sort(
-      (a, b) => b.attendanceCount - a.attendanceCount
-    );
+      // Return a single "schedule" entry with all attendees
+      scheduleBreakdown = [
+        {
+          scheduleId: "all-records",
+          scheduleName: "All Records",
+          massType: "All",
+          scheduleType: "recurring",
+          startTime: "N/A",
+          endTime: "N/A",
+          attendanceCount: allAttendees.length,
+          attendees: allAttendees,
+        },
+      ];
+    }
+
+    const schedulesUsed = scheduleBreakdown.length;
 
     res.status(200).json({
       success: true,
@@ -585,6 +771,7 @@ exports.getAttendanceReports = async (req, res) => {
     });
   } catch (error) {
     console.error("Error generating attendance reports:", error);
+    console.error("Error stack:", error.stack);
     res.status(500).json({
       success: false,
       message: "Error generating reports",

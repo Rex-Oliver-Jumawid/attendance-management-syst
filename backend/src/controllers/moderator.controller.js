@@ -1,61 +1,72 @@
 const AttendanceSession = require("../models/AttendanceSession");
 const AttendanceRecord = require("../models/AttendanceRecord");
 const User = require("../models/User");
+const Contribution = require("../models/Contribution");
+const Expense = require("../models/Expense");
+const MassSchedule = require("../models/MassSchedule");
+const bcrypt = require("bcryptjs");
 
 // @desc    Scan QR code and record attendance
 // @route   POST /api/moderator/scan
 // @access  Private (Moderator)
 exports.scanQR = async (req, res) => {
   try {
-    const { qrCode, notes } = req.body; // Remove massType from request
+    const { qrCode, notes, scheduleId } = req.body;
     const moderatorId = req.user.id;
 
-    if (!qrCode) {
+    if (!qrCode || !scheduleId) {
       return res.status(400).json({
         success: false,
-        message: "QR code is required",
+        message: "QR code and schedule are required",
       });
     }
 
-    // Find the QR session
-    const session = await AttendanceSession.findOne({ qrCode }).populate(
-      "userId",
-      "firstName lastName username email"
-    );
+    // Find user by permanent QR code
+    const user = await User.findOne({ qrCode });
 
-    if (!session) {
+    if (!user) {
       return res.status(404).json({
         success: false,
-        message: "Invalid QR code",
+        message: "Invalid QR code - user not found",
       });
     }
 
-    // Check if QR is valid
-    if (!session.isValid()) {
+    // Verify schedule exists
+    const schedule = await MassSchedule.findById(scheduleId);
+
+    if (!schedule) {
+      return res.status(404).json({
+        success: false,
+        message: "Schedule not found",
+      });
+    }
+
+    // Check if user already has attendance for this schedule today
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const existingAttendance = await AttendanceRecord.findOne({
+      userId: user._id,
+      massType: schedule.massType,
+      scannedAt: { $gte: today, $lt: tomorrow },
+    });
+
+    if (existingAttendance) {
       return res.status(400).json({
         success: false,
-        message:
-          session.status === "used"
-            ? "QR code already used"
-            : "QR code has expired",
+        message: "Attendance already recorded for this schedule today",
       });
     }
 
-    // Use mass type from the session
-    const massType = session.massType;
-
-    // Mark session as used
-    session.status = "used";
-    session.usedAt = new Date();
-    session.scannedBy = moderatorId;
-    await session.save();
-
-    // Create attendance record
+    // Create attendance record directly (no session needed for permanent QR)
     const record = await AttendanceRecord.create({
-      userId: session.userId._id,
-      sessionId: session._id,
+      userId: user._id,
+      sessionId: null, // No session for permanent QR codes
       moderatorId,
-      massType,
+      massType: schedule.massType,
+      scheduleId: schedule._id, // Ensure scheduleId is set
       notes,
     });
 
@@ -98,7 +109,6 @@ exports.scanQR = async (req, res) => {
 exports.getRecentScans = async (req, res) => {
   try {
     const { limit = 20, range = "day" } = req.query;
-    const moderatorId = req.user.id;
 
     // Calculate date range
     const now = new Date();
@@ -118,13 +128,21 @@ exports.getRecentScans = async (req, res) => {
         break;
     }
 
-    const records = await AttendanceRecord.find({
-      scannedBy: moderatorId,
-      scannedAt: { $gte: startDate },
-    })
+    console.log("[getRecentScans] Query params:", { limit, range });
+    console.log("[getRecentScans] Date range:", startDate, "to", now);
+
+    const query = { scannedAt: { $gte: startDate } };
+    console.log("[getRecentScans] MongoDB query:", query);
+
+    const records = await AttendanceRecord.find(query)
       .populate("userId", "firstName lastName username email")
       .sort({ scannedAt: -1 })
       .limit(parseInt(limit));
+
+    console.log(`[getRecentScans] Found ${records.length} attendance records`);
+    if (records.length > 0) {
+      console.log("[getRecentScans] Example record:", records[0]);
+    }
 
     res.json({
       success: true,
@@ -215,6 +233,284 @@ exports.getModeratorStats = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Error fetching moderator stats",
+      error: error.message,
+    });
+  }
+};
+
+// @desc    Register a new user (by moderator)
+// @route   POST /api/moderator/users/register
+// @access  Private (Moderator)
+exports.registerUser = async (req, res) => {
+  try {
+    const { email, firstName, lastName, phoneNumber } = req.body;
+
+    // Validate required fields (only email and name required for members)
+    if (!email || !firstName || !lastName) {
+      return res.status(400).json({
+        success: false,
+        message: "Email, first name, and last name are required",
+      });
+    }
+
+    // Check if user exists by email
+    const existingUser = await User.findOne({ email });
+
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: "Email already registered",
+      });
+    }
+
+    // Create user as member (no username/password needed, QR code generated by pre-save hook)
+    const user = await User.create({
+      email,
+      firstName,
+      lastName,
+      phoneNumber,
+      role: "member",
+      isActive: true,
+    });
+
+    // Remove password from response
+    const userResponse = user.toObject();
+    delete userResponse.password;
+
+    res.status(201).json({
+      success: true,
+      message: "Member registered successfully",
+      data: userResponse,
+    });
+  } catch (error) {
+    console.error("Register user error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error registering member",
+      error: error.message,
+    });
+  }
+};
+
+// @desc    Get all users
+// @route   GET /api/moderator/users
+// @access  Private (Moderator)
+exports.getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find().select("-password").sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: users.length,
+      data: users,
+    });
+  } catch (error) {
+    console.error("Get all users error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching users",
+      error: error.message,
+    });
+  }
+};
+
+// @desc    Update user status
+// @route   PATCH /api/moderator/users/:id/status
+// @access  Private (Moderator)
+exports.updateUserStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isActive } = req.body;
+
+    if (typeof isActive !== "boolean") {
+      return res.status(400).json({
+        success: false,
+        message: "isActive must be a boolean value",
+      });
+    }
+
+    const user = await User.findById(id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Prevent deactivating admin users
+    if (user.role === "admin" && !isActive) {
+      return res.status(403).json({
+        success: false,
+        message: "Cannot deactivate admin users",
+      });
+    }
+
+    user.isActive = isActive;
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: `User ${isActive ? "activated" : "deactivated"} successfully`,
+      data: user,
+    });
+  } catch (error) {
+    console.error("Update user status error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error updating user status",
+      error: error.message,
+    });
+  }
+};
+
+// @desc    Add contribution
+// @route   POST /api/moderator/contributions
+// @access  Private (Moderator)
+exports.addContribution = async (req, res) => {
+  try {
+    const { userId, scheduleId, amount, notes } = req.body;
+    const moderatorId = req.user.id;
+
+    if (!userId || !scheduleId || !amount) {
+      return res.status(400).json({
+        success: false,
+        message: "User, schedule, and amount are required",
+      });
+    }
+
+    // Verify user exists
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Verify schedule exists
+    const schedule = await MassSchedule.findById(scheduleId);
+    if (!schedule) {
+      return res.status(404).json({
+        success: false,
+        message: "Schedule not found",
+      });
+    }
+
+    const contribution = await Contribution.create({
+      userId,
+      scheduleId,
+      amount,
+      recordedBy: moderatorId,
+      notes,
+    });
+
+    await contribution.populate("userId", "firstName lastName username");
+    await contribution.populate("scheduleId");
+    await contribution.populate("recordedBy", "firstName lastName");
+
+    res.status(201).json({
+      success: true,
+      message: "Contribution recorded successfully",
+      data: contribution,
+    });
+  } catch (error) {
+    console.error("Add contribution error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error recording contribution",
+      error: error.message,
+    });
+  }
+};
+
+// @desc    Get all contributions
+// @route   GET /api/moderator/contributions
+// @access  Private (Moderator)
+exports.getAllContributions = async (req, res) => {
+  try {
+    const contributions = await Contribution.find()
+      .populate("userId", "firstName lastName username")
+      .populate("scheduleId")
+      .populate("recordedBy", "firstName lastName")
+      .sort({ date: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: contributions.length,
+      data: contributions,
+    });
+  } catch (error) {
+    console.error("Get contributions error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching contributions",
+      error: error.message,
+    });
+  }
+};
+
+// @desc    Add expense
+// @route   POST /api/moderator/expenses
+// @access  Private (Moderator)
+exports.addExpense = async (req, res) => {
+  try {
+    const { description, amount, category, month, year, notes } = req.body;
+    const moderatorId = req.user.id;
+
+    if (!description || !amount || !category || !month || !year) {
+      return res.status(400).json({
+        success: false,
+        message: "All required fields must be provided",
+      });
+    }
+
+    const expense = await Expense.create({
+      description,
+      amount,
+      category,
+      month,
+      year,
+      recordedBy: moderatorId,
+      notes,
+    });
+
+    await expense.populate("recordedBy", "firstName lastName");
+
+    res.status(201).json({
+      success: true,
+      message: "Expense recorded successfully",
+      data: expense,
+    });
+  } catch (error) {
+    console.error("Add expense error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error recording expense",
+      error: error.message,
+    });
+  }
+};
+
+// @desc    Get all expenses
+// @route   GET /api/moderator/expenses
+// @access  Private (Moderator)
+exports.getAllExpenses = async (req, res) => {
+  try {
+    const expenses = await Expense.find()
+      .populate("recordedBy", "firstName lastName")
+      .sort({ date: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: expenses.length,
+      data: expenses,
+    });
+  } catch (error) {
+    console.error("Get expenses error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching expenses",
       error: error.message,
     });
   }

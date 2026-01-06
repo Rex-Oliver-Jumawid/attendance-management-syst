@@ -26,6 +26,7 @@
 
     <link rel="stylesheet" href="../../css/inside.css" />
     <link rel="stylesheet" href="../../css/moderator/moderator-dashboard.css" />
+    <link rel="stylesheet" href="../../css/moderator/schedule-card.css" />
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   </head>
 
@@ -44,17 +45,29 @@
           <a href="#home-section" class="nav-link active">
             <img src="../../images/icons/home.png" class="nav-link-img" />Home
           </a>
+          <a href="#users-section" class="nav-link">
+            <img
+              src="../../images/icons/address-book.png"
+              class="nav-link-img"
+            />Members
+          </a>
           <a href="#scan-section" class="nav-link">
             <img
               src="../../images/icons/qr-code.png"
               class="nav-link-img"
             />Scan QR
           </a>
-          <a href="#history-section" class="nav-link">
+          <a href="#contributions-section" class="nav-link">
             <img
-              src="../../images/icons/calendar.png"
+              src="../../images/icons/wallet.png"
               class="nav-link-img"
-            />Recent Scans
+            />Contributions
+          </a>
+          <a href="#expenses-section" class="nav-link">
+            <img
+              src="../../images/icons/money.png"
+              class="nav-link-img"
+            />Expenses
           </a>
           <a href="#profile-section" class="nav-link">
             <img
@@ -97,6 +110,109 @@
             <h3 id="activeSessions">0</h3>
             <p>Active QR Sessions</p>
           </div>
+        </div>
+      </section>
+
+      <!-- Users Section -->
+      <section id="users-section" class="users-section" style="display: none">
+        <h2>User Management</h2>
+        <p>Register new users and manage QR codes</p>
+
+        <!-- User Registration Form -->
+        <div
+          class="form-container"
+          style="
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+          "
+        >
+          <h3>Register New Member</h3>
+          <form id="registerUserForm">
+            <div
+              style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px"
+            >
+              <div class="form-group">
+                <label for="regFirstName">First Name *</label>
+                <input
+                  type="text"
+                  id="regFirstName"
+                  placeholder="Enter first name"
+                  required
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="regLastName">Last Name *</label>
+                <input
+                  type="text"
+                  id="regLastName"
+                  placeholder="Enter last name"
+                  required
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="regEmail">Email *</label>
+                <input
+                  type="email"
+                  id="regEmail"
+                  placeholder="Enter email"
+                  required
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="regPhone">Phone Number</label>
+                <input
+                  type="tel"
+                  id="regPhone"
+                  placeholder="Enter phone number"
+                />
+              </div>
+            </div>
+
+            <button type="submit" class="btn-primary" style="margin-top: 15px">
+              Register Member & Generate QR Code
+            </button>
+          </form>
+        </div>
+
+        <!-- Users List -->
+        <div class="table-container">
+          <h3>All Users</h3>
+          <div class="table-controls" style="margin-bottom: 15px">
+            <input
+              type="text"
+              id="userSearchInput"
+              placeholder="Search users..."
+              style="
+                padding: 8px;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                width: 300px;
+              "
+            />
+          </div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>QR Code</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="usersTableBody">
+              <tr>
+                <td colspan="7" style="text-align: center">Loading users...</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </section>
 
@@ -220,47 +336,221 @@
         <div id="scanResult" class="scan-result"></div>
       </section>
 
-      <!-- Recent Scans Section -->
+      <!-- Contributions Section -->
       <section
-        id="history-section"
-        class="history-section"
+        id="contributions-section"
+        class="contributions-section"
         style="display: none"
       >
-        <h2>Recent Scans</h2>
+        <h2>Contributions Management</h2>
+        <p>View schedules and declare contributions for attendees</p>
 
         <!-- Filter Controls -->
         <div
-          style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap"
+          style="
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+          "
         >
-          <button class="btn-filter active" data-filter="day">Today</button>
-          <button class="btn-filter" data-filter="week">This Week</button>
-          <button class="btn-filter" data-filter="month">This Month</button>
+          <div style="display: flex; gap: 10px">
+            <button
+              class="btn-filter active"
+              data-range="day"
+              id="contribTodayBtn"
+            >
+              Today
+            </button>
+            <button class="btn-filter" data-range="week" id="contribWeekBtn">
+              This Week
+            </button>
+            <button class="btn-filter" data-range="month" id="contribMonthBtn">
+              This Month
+            </button>
+          </div>
         </div>
 
+        <!-- Summary Stats -->
+        <div class="stats-grid" style="margin-bottom: 30px">
+          <div class="stat-card">
+            <h3 id="contribTotalAttendance">0</h3>
+            <p>Total Attendance</p>
+          </div>
+          <div class="stat-card">
+            <h3 id="contribUniqueAttendees">0</h3>
+            <p>Unique Attendees</p>
+          </div>
+          <div class="stat-card">
+            <h3 id="contribScheduleCount">0</h3>
+            <p>Schedules</p>
+          </div>
+          <div class="stat-card">
+            <h3 id="contribAvgPerSchedule">0</h3>
+            <p>Avg per Schedule</p>
+          </div>
+        </div>
+
+        <!-- Schedule Attendance List -->
+        <h3 style="margin-bottom: 15px">Schedule Attendance Details</h3>
+        <div id="scheduleAttendanceList">
+          <p>Loading attendance data...</p>
+        </div>
+      </section>
+
+      <!-- Expenses Section -->
+      <section
+        id="expenses-section"
+        class="expenses-section"
+        style="display: none"
+      >
+        <h2>Expense Management</h2>
+        <p>Record and track church expenses</p>
+
+        <!-- Add Expense Form -->
         <div
+          class="form-container"
           style="
             background: white;
             padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            margin-bottom: 30px;
           "
         >
-          <div id="moderatorStats"></div>
+          <h3>Record Expense</h3>
+          <form id="addExpenseForm">
+            <div
+              style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px"
+            >
+              <div class="form-group">
+                <label for="expenseCategory">Category *</label>
+                <select id="expenseCategory" required>
+                  <option value="">Select category...</option>
+                  <option value="Utilities">Utilities</option>
+                  <option value="Maintenance">Maintenance</option>
+                  <option value="Supplies">Supplies</option>
+                  <option value="Events">Events</option>
+                  <option value="Salaries">Salaries</option>
+                  <option value="Charity">Charity</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
 
-          <table>
+              <div class="form-group">
+                <label for="expenseMonth">Month *</label>
+                <select id="expenseMonth" required>
+                  <option value="1">January</option>
+                  <option value="2">February</option>
+                  <option value="3">March</option>
+                  <option value="4">April</option>
+                  <option value="5">May</option>
+                  <option value="6">June</option>
+                  <option value="7">July</option>
+                  <option value="8">August</option>
+                  <option value="9">September</option>
+                  <option value="10">October</option>
+                  <option value="11">November</option>
+                  <option value="12">December</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="expenseYear">Year *</label>
+                <input
+                  type="number"
+                  id="expenseYear"
+                  required
+                  min="2000"
+                  max="2100"
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="expenseNotes">Notes</label>
+                <input
+                  type="text"
+                  id="expenseNotes"
+                  placeholder="Optional notes"
+                />
+              </div>
+            </div>
+
+            <button type="submit" class="btn-primary" style="margin-top: 15px">
+              Record Expense
+            </button>
+          </form>
+        </div>
+
+        <!-- Expenses List -->
+        <div class="table-container">
+          <h3>All Expenses</h3>
+          <div class="table-controls" style="margin-bottom: 15px">
+            <select
+              id="expenseFilterMonth"
+              style="padding: 8px; border: 1px solid #ddd; border-radius: 4px"
+            >
+              <option value="">All Months</option>
+              <option value="1">January</option>
+              <option value="2">February</option>
+              <option value="3">March</option>
+              <option value="4">April</option>
+              <option value="5">May</option>
+              <option value="6">June</option>
+              <option value="7">July</option>
+              <option value="8">August</option>
+              <option value="9">September</option>
+              <option value="10">October</option>
+              <option value="11">November</option>
+              <option value="12">December</option>
+            </select>
+            <select
+              id="expenseFilterYear"
+              style="
+                padding: 8px;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                margin-left: 10px;
+              "
+            >
+              <option value="">All Years</option>
+            </select>
+            <select
+              id="expenseFilterCategory"
+              style="
+                padding: 8px;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                margin-left: 10px;
+              "
+            >
+              <option value="">All Categories</option>
+              <option value="Utilities">Utilities</option>
+              <option value="Maintenance">Maintenance</option>
+              <option value="Supplies">Supplies</option>
+              <option value="Events">Events</option>
+              <option value="Salaries">Salaries</option>
+              <option value="Charity">Charity</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <table class="data-table">
             <thead>
               <tr>
                 <th>Date</th>
-                <th>Time</th>
-                <th>Name</th>
-                <th>Username</th>
-                <th>Mass Type</th>
+                <th>Description</th>
+                <th>Category</th>
+                <th>Amount</th>
+                <th>Month/Year</th>
+                <th>Recorded By</th>
                 <th>Notes</th>
               </tr>
             </thead>
-            <tbody id="recentScansTable">
+            <tbody id="expensesTableBody">
               <tr>
-                <td colspan="6">Loading...</td>
+                <td colspan="7" style="text-align: center">
+                  Loading expenses...
+                </td>
               </tr>
             </tbody>
           </table>
@@ -274,6 +564,9 @@
     <script src="../../js/auth.js"></script>
     <script src="../../js/moderator/qr-scanner.js"></script>
     <script src="../../js/moderator/attendance-manager.js"></script>
+    <script src="../../js/moderator/user-registration.js"></script>
+    <script src="../../js/moderator/contributions.js"></script>
+    <script src="../../js/moderator/expenses.js"></script>
 
     <script>
       // Mobile menu toggle
