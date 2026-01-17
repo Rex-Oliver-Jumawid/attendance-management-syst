@@ -253,86 +253,136 @@
 
       <!-- QR Scanning Section -->
       <section id="scan-section" class="scan-section" style="display: none">
-        <h2>Scan QR Code for Attendance</h2>
-        <p>Use your camera to scan the user's QR code</p>
+        <!-- Schedule Selection View -->
+        <div id="scheduleSelectionView">
+          <h2>Select Mass Schedule</h2>
+          <p>Choose a schedule to start scanning attendance</p>
 
-        <!-- Start Camera Button (Top) -->
-        <div style="text-align: center; margin-bottom: 20px">
-          <button
-            id="startCameraBtn"
-            class="btn-primary"
-            style="max-width: 300px; width: 100%"
-          >
-            Start Camera
-          </button>
-        </div>
-
-        <!-- Camera Scanner (Better Size) -->
-        <div
-          id="qr-reader"
-          style="
-            width: 90%;
-            max-width: 500px;
-            margin: 0 auto 20px;
-            display: none;
-            border: none !important;
-          "
-        ></div>
-
-        <!-- Stop Camera Button (Below Camera) -->
-        <div
-          id="stopCameraContainer"
-          style="text-align: center; margin-bottom: 30px; display: none"
-        >
-          <button
-            id="stopCameraBtn"
-            class="btn-secondary"
-            style="max-width: 300px; width: 100%"
-          >
-            Stop Camera
-          </button>
-        </div>
-
-        <form id="scanForm">
-          <div class="form-group">
-            <label for="qrCodeInput">QR Code (Auto-filled from scan) *</label>
-            <input
-              type="text"
-              id="qrCodeInput"
-              placeholder="QR code will appear here after scanning"
-              required
-              readonly
-            />
+          <div id="scheduleCardsContainer" class="schedule-cards-grid">
+            <p style="text-align: center; padding: 40px; color: #666">
+              Loading schedules...
+            </p>
           </div>
+        </div>
 
-          <div class="form-group">
-            <label for="massScheduleSelect">Mass Schedule *</label>
-            <select id="massScheduleSelect" required>
-              <option value="">Loading schedules...</option>
-            </select>
-            <small
-              id="scheduleHelp"
-              style="color: #666; display: block; margin-top: 5px"
+        <!-- Scanning View -->
+        <div id="scanningView" style="display: none">
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-bottom: 20px;
+            "
+          >
+            <div>
+              <h2 style="margin: 0">Scanning Attendance</h2>
+              <p style="margin: 5px 0; color: #666" id="selectedScheduleName">
+                Schedule Name
+              </p>
+            </div>
+            <button
+              id="backToSchedulesBtn"
+              class="btn-secondary"
+              style="background-color: #1a1a1a"
             >
-              Only active schedules that haven't ended yet are shown
-            </small>
+              Back to Schedules
+            </button>
           </div>
 
-          <div class="form-group">
-            <label for="notes">Notes (Optional)</label>
-            <textarea
-              id="notes"
-              rows="3"
-              placeholder="Add any notes here..."
-            ></textarea>
+          <!-- Scan Statistics -->
+          <div class="stats-grid" style="margin-bottom: 20px">
+            <div class="stat-card">
+              <h3 id="lastScannedName">-</h3>
+              <p>Last Scanned</p>
+            </div>
           </div>
 
-          <button type="submit" id="scanBtn" class="btn-primary">
-            Record Attendance
-          </button>
-        </form>
+          <!-- Start Camera Button -->
+          <div style="text-align: center; margin-bottom: 20px">
+            <button
+              id="startCameraBtn"
+              class="btn-primary"
+              style="
+                max-width: 300px;
+                width: 100%;
+                font-size: 18px;
+                padding: 15px;
+              "
+            >
+              Start Camera
+            </button>
+          </div>
 
-        <div id="scanResult" class="scan-result"></div>
+          <!-- Camera Scanner -->
+          <div
+            id="qr-reader"
+            style="
+              width: 90%;
+              max-width: 500px;
+              margin: 0 auto 20px;
+              display: none;
+              border: none !important;
+            "
+          ></div>
+
+          <!-- Stop Camera Button -->
+          <div
+            id="stopCameraContainer"
+            style="text-align: center; margin-bottom: 30px; display: none"
+          >
+            <button
+              id="stopCameraBtn"
+              class="btn-secondary"
+              style="
+                max-width: 300px;
+                width: 100%;
+                font-size: 18px;
+                padding: 15px;
+              "
+            >
+              Stop Camera
+            </button>
+          </div>
+
+          <!-- Scan Result -->
+          <div id="scanResult" class="scan-result"></div>
+
+          <!-- Attendance Records for This Schedule -->
+          <div style="margin-top: 30px">
+            <h3>Current List</h3>
+            <div class="table-wrapper">
+              <table id="attendanceRecordsTable">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Scanned At</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="attendanceRecordsBody">
+                  <tr>
+                    <td
+                      colspan="4"
+                      style="text-align: center; color: #666; padding: 20px"
+                    >
+                      Loading attendance records...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Hidden form (no longer visible to user) -->
+          <form id="scanForm" style="display: none">
+            <input type="text" id="qrCodeInput" />
+            <select id="massScheduleSelect"></select>
+            <textarea id="notes"></textarea>
+            <button type="submit" id="scanBtn">Record Attendance</button>
+          </form>
+        </div>
       </section>
 
       <!-- Contributions Section -->
@@ -698,11 +748,31 @@
               usersResponse.count || 0;
           }
 
-          // Get active schedules count
+          // Get active schedules count (only today's schedules)
           const schedulesResponse = await api.getMassSchedules(true);
           if (schedulesResponse.success) {
+            const now = new Date();
+            const currentDay = now.getDay();
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            const todaySchedules = (schedulesResponse.schedules || []).filter(
+              (schedule) => {
+                if (schedule.scheduleType === "specific") {
+                  const scheduleDate = new Date(schedule.specificDate);
+                  scheduleDate.setHours(0, 0, 0, 0);
+                  return scheduleDate.getTime() === today.getTime();
+                } else {
+                  return (
+                    schedule.dayOfWeek &&
+                    schedule.dayOfWeek.includes(currentDay)
+                  );
+                }
+              }
+            );
+
             document.getElementById("activeSchedules").textContent =
-              schedulesResponse.schedules?.length || 0;
+              todaySchedules.length;
           }
 
           // Get total expenses count

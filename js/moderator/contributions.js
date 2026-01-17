@@ -99,8 +99,54 @@ class ContributionsManager {
         schedules.map((s) => getId(s._id))
       );
 
+      // Filter schedules based on current range
+      const now = new Date();
+      const currentDay = now.getDay();
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      // Calculate date ranges
+      let startDate, endDate;
+
+      if (this.currentRange === "day") {
+        // Today only
+        startDate = new Date(today);
+        endDate = new Date(today);
+        endDate.setHours(23, 59, 59, 999);
+      } else if (this.currentRange === "week") {
+        // This week (Sunday to Saturday)
+        startDate = new Date(today);
+        startDate.setDate(today.getDate() - today.getDay()); // Go to Sunday
+        endDate = new Date(startDate);
+        endDate.setDate(startDate.getDate() + 6); // Go to Saturday
+        endDate.setHours(23, 59, 59, 999);
+      } else if (this.currentRange === "month") {
+        // This month
+        startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+        endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        endDate.setHours(23, 59, 59, 999);
+      }
+
+      const filteredSchedules = schedules.filter((schedule) => {
+        if (schedule.scheduleType === "specific") {
+          const scheduleDate = new Date(schedule.specificDate);
+          scheduleDate.setHours(0, 0, 0, 0);
+          return scheduleDate >= startDate && scheduleDate <= endDate;
+        } else {
+          // For recurring schedules, check if any day in the range matches
+          if (this.currentRange === "day") {
+            return (
+              schedule.dayOfWeek && schedule.dayOfWeek.includes(currentDay)
+            );
+          } else {
+            // For week/month, include all recurring schedules
+            return true;
+          }
+        }
+      });
+
       // Build schedule data with attendees
-      this.scheduleData = schedules.map((schedule) => {
+      this.scheduleData = filteredSchedules.map((schedule) => {
         const scheduleId = getId(schedule._id);
 
         // Match attendance by scheduleId

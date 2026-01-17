@@ -10,6 +10,7 @@ const attendanceSessionSchema = new mongoose.Schema({
     type: String,
     required: true,
     unique: true,
+    index: true, // Combined with unique
   },
   qrCodeImage: {
     type: String, // Base64 image
@@ -47,7 +48,6 @@ const attendanceSessionSchema = new mongoose.Schema({
 });
 
 // Indexes
-attendanceSessionSchema.index({ qrCode: 1 });
 attendanceSessionSchema.index({ userId: 1, status: 1 });
 
 // Check if QR is valid
