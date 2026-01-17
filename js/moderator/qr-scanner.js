@@ -44,18 +44,18 @@ class QRScanner {
 
     // Get all elements
     this.scheduleSelectionView = document.getElementById(
-      "scheduleSelectionView"
+      "scheduleSelectionView",
     );
     this.scanningView = document.getElementById("scanningView");
     this.scheduleCardsContainer = document.getElementById(
-      "scheduleCardsContainer"
+      "scheduleCardsContainer",
     );
     this.backToSchedulesBtn = document.getElementById("backToSchedulesBtn");
     this.selectedScheduleName = document.getElementById("selectedScheduleName");
     this.scannedCount = document.getElementById("scannedCount");
     this.lastScannedName = document.getElementById("lastScannedName");
     this.attendanceRecordsBody = document.getElementById(
-      "attendanceRecordsBody"
+      "attendanceRecordsBody",
     );
 
     this.scanForm = document.getElementById("scanForm");
@@ -106,7 +106,7 @@ class QRScanner {
     const newStartBtn = this.startCameraBtn.cloneNode(true);
     this.startCameraBtn.parentNode.replaceChild(
       newStartBtn,
-      this.startCameraBtn
+      this.startCameraBtn,
     );
     this.startCameraBtn = newStartBtn;
 
@@ -171,7 +171,7 @@ class QRScanner {
   updateScanStats() {
     console.log(
       "updateScanStats called. sessionScans.length:",
-      this.sessionScans.length
+      this.sessionScans.length,
     );
     console.log("scannedCount element:", this.scannedCount);
 
@@ -205,7 +205,7 @@ class QRScanner {
       console.log("API endpoint:", API_CONFIG.ENDPOINTS.MASS_SCHEDULES);
       console.log(
         "Full URL:",
-        `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.MASS_SCHEDULES}?active=true`
+        `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.MASS_SCHEDULES}?active=true`,
       );
 
       const response = await api.getMassSchedules(true); // Only active schedules
@@ -240,7 +240,7 @@ class QRScanner {
     const now = new Date();
     const currentDay = now.getDay(); // 0 = Sunday, 6 = Saturday
     const currentTime = `${String(now.getHours()).padStart(2, "0")}:${String(
-      now.getMinutes()
+      now.getMinutes(),
     ).padStart(2, "0")}`;
 
     const today = new Date();
@@ -255,7 +255,7 @@ class QRScanner {
         "Checking schedule:",
         schedule.name,
         "Type:",
-        schedule.scheduleType
+        schedule.scheduleType,
       );
 
       // Check based on schedule type
@@ -281,7 +281,7 @@ class QRScanner {
       // Check if schedule hasn't ended yet
       if (currentTime > schedule.endTime) {
         console.log(
-          `Schedule ${schedule.name} has ended (${schedule.endTime})`
+          `Schedule ${schedule.name} has ended (${schedule.endTime})`,
         );
         return false;
       }
@@ -316,13 +316,13 @@ class QRScanner {
           <div class="schedule-card-type">${
             schedule.scheduleType === "specific"
               ? `Specific: ${new Date(
-                  schedule.specificDate
+                  schedule.specificDate,
                 ).toLocaleDateString()}`
               : `Recurring: ${this.getDayName(schedule.dayOfWeek)}`
           }</div>
           <div class="schedule-card-footer">Click to start scanning</div>
         </div>
-      `
+      `,
         )
         .join("");
 
@@ -367,10 +367,10 @@ class QRScanner {
 
       console.log(
         "Fetching attendees for schedule:",
-        this.selectedSchedule._id
+        this.selectedSchedule._id,
       );
       const response = await api.getScheduleAttendees(
-        this.selectedSchedule._id
+        this.selectedSchedule._id,
       );
 
       console.log("API response:", response);
@@ -381,6 +381,21 @@ class QRScanner {
         response.attendees.length > 0
       ) {
         console.log("Found", response.attendees.length, "attendance records");
+
+        // Sync scannedCodes with actual database records
+        // This ensures the in-memory Set matches what's actually recorded
+        this.scannedCodes.clear();
+        response.attendees.forEach((record) => {
+          if (record.qrCode) {
+            this.scannedCodes.add(record.qrCode);
+          }
+        });
+        console.log(
+          "Synced scannedCodes with",
+          this.scannedCodes.size,
+          "records from database",
+        );
+
         this.attendanceRecordsBody.innerHTML = response.attendees
           .map(
             (record) => `
@@ -390,11 +405,13 @@ class QRScanner {
               <td>${new Date(record.scannedAt).toLocaleString()}</td>
               <td><span class="status-badge status-present">Present</span></td>
             </tr>
-          `
+          `,
           )
           .join("");
       } else {
         console.log("No attendance records found");
+        // Clear scannedCodes if no records exist
+        this.scannedCodes.clear();
         this.attendanceRecordsBody.innerHTML =
           '<tr><td colspan="4" style="text-align: center; color: #666; padding: 20px;">No attendance records yet.</td></tr>';
       }
@@ -445,7 +462,7 @@ class QRScanner {
         (decodedText) => this.onScanSuccess(decodedText),
         (errorMessage) => {
           // Silent - ignore scan errors
-        }
+        },
       );
 
       console.log("✓✓✓ CAMERA STARTED SUCCESSFULLY ✓✓✓");
@@ -501,13 +518,13 @@ class QRScanner {
       this.showResult(
         "⚠️ Already scanned this person in this session!",
         "error",
-        true // Auto-hide after timeout
+        true, // Auto-hide after timeout
       );
 
       // Play different sound for duplicate
       try {
         const audio = new Audio(
-          "data:audio/wav;base64,UklGRjIAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQ4AAAB/f39/f39/f39/f39/f38="
+          "data:audio/wav;base64,UklGRjIAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQ4AAAB/f39/f39/f39/f39/f38=",
         );
         audio.play();
       } catch (e) {}
@@ -518,7 +535,7 @@ class QRScanner {
     // Play beep for successful scan
     try {
       const audio = new Audio(
-        "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIGGS67OihUBELTKXh8bllHAU2jdXzxnkqBSh+zPLaizsKFGCx6OyrWBQLSKHf87tnHgU0iNPzw3csBS1+zPDYijkHFmm98OWoVBIIRp/h8bxnHwUqgM/z2IwwBxZpu+LqrFoSCkSf4fG7aB4FKoDQ89eNMggVabzx5qlWEgpDnt/zuGgdBSh/zPDWizUIF2q77+esWRIIRZ/h8blnHgUpgdDz2IwwBxZpvPDlqFQSCEaf4fG8Zx8FKoDQ89eNMggVabzh6qxaEgpFn+Hxu2geBSqAz/PYjDAHFWi98OWpVRIKQ5/f87lpHAUof8zw1os1CBdqu+/nrFkSCEWf4PG5Zx4FKoHQ89eMMQcWabzx5qlWEgpDnuDzu2geBSl/0PPYjDAIFWi78OapVBIKRp/h8bxnHwUpgM/z2IwwBxVpvOHqrFoSCkWf4PG7Zx4FKYHO89iNMQcVabzw5alVEgpDnt/ztWgeBSl/zPDWizUIF2q77+esWRIIRZ7g8bxoHwUpgdDz14wwBxVpvOHqrFoSCkWf4PG7aB4FKYHO89iNMQcVabzx5qlWEgpDnuDztWgdBSh/zPDWizUIF2q77+esWRIIRZ7g8bxoHwUpgM/z2IwwBxVpvOHqrFoSCkWf4PG7aB4FKYHO89iMMQcVabzx5qlWEgpDnuDztWgdBSh+zPDXizYIF2q77+esWRIIRZ/g8bpoHwUpgM/z2IwwBxVpvOHqrFoSCkWf4PG6aB4FKYHO89iMMQcVabzw5KlVEgpEn+Hxu2geBSh/zPDXizYIF2q77+esWRIIRZ/g8bpoHwUqgM/z2IwwBxVpvOHqrFoSCkWf4PG6aB4FKYHO89iMMQcVabzw5KlVEgpEn+Hxu2geBSh/zPDXizYIF2q77+esWRIIRZ/g8bpoHwUqgM/z2IwwBxVpvOHqrFoSCkSf4PG7aB4FKYHO89iMMQcVabzw5KlVEgpEn+Hxu2geBSh/zPDXizYIF2q77+esWRIIRZ/g8bpoHwUqgM/z2IwwBxVpvOHqrFoSCkSf4PG7aB4FKYHO89iMMQcVabzw5KlVEgpEn+Hxu2geBSh/zPDXizYIF2q77+esWRIIRZ/g8bpoHwUqgM/z2IwwBxVpvOHqrFoSCkSf4PG7aB4FKYHO89iMMQcVabzw5KlVEgpEn+Hxu2geBSh/zPDXizYIF2q77+esWRIIRZ/g8bpoHwUqgM/z2IwwBxVpvOHqrFoSCkSf4PG7aB4FKYHO89iMMQcVabzw5KlVEgpEn+Hxu2geBSh/zPDXizYIF2q77+esWRIIRZ/g8bpoHwUqgM/z2IwwBxVpvOHqrFoSCkSf4PG7aB4FKYHO89iMMQcVabzw5KlVEgpEn+Hxu2geBSh/zPDXizYIF2q77+esWRIIRZ/g8bpoHwUqgM/z2IwwBxVpvOHqrFoSCkSf4PG7aB4FKYHO89iMMQcVabzw5KlVEgpEn+Hxu2geBSh/zPDXizYIF2q77+esWRIIRZ/g8bpoHwUqgM/z2IwwBxVpvOHqrFoSCg=="
+        "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIGGS67OihUBELTKXh8bllHAU2jdXzxnkqBSh+zPLaizsKFGCx6OyrWBQLSKHf87tnHgU0iNPzw3csBS1+zPDYijkHFmm98OWoVBIIRp/h8bxnHwUqgM/z2IwwBxZpu+LqrFoSCkSf4fG7aB4FKoDQ89eNMggVabzx5qlWEgpDnt/zuGgdBSh/zPDWizUIF2q77+esWRIIRZ/h8blnHgUpgdDz2IwwBxZpvPDlqFQSCEaf4fG8Zx8FKoDQ89eNMggVabzh6qxaEgpFn+Hxu2geBSqAz/PYjDAHFWi98OWpVRIKQ5/f87lpHAUof8zw1os1CBdqu+/nrFkSCEWf4PG5Zx4FKoHQ89eMMQcWabzx5qlWEgpDnuDzu2geBSl/0PPYjDAIFWi78OapVBIKRp/h8bxnHwUpgM/z2IwwBxVpvOHqrFoSCkWf4PG7Zx4FKYHO89iNMQcVabzw5alVEgpDnt/ztWgeBSl/zPDWizUIF2q77+esWRIIRZ7g8bxoHwUpgdDz14wwBxVpvOHqrFoSCkWf4PG7aB4FKYHO89iNMQcVabzx5qlWEgpDnuDztWgdBSh/zPDWizUIF2q77+esWRIIRZ7g8bxoHwUpgM/z2IwwBxVpvOHqrFoSCkWf4PG7aB4FKYHO89iMMQcVabzx5qlWEgpDnuDztWgdBSh+zPDXizYIF2q77+esWRIIRZ/g8bpoHwUpgM/z2IwwBxVpvOHqrFoSCkWf4PG6aB4FKYHO89iMMQcVabzw5KlVEgpEn+Hxu2geBSh/zPDXizYIF2q77+esWRIIRZ/g8bpoHwUqgM/z2IwwBxVpvOHqrFoSCkWf4PG6aB4FKYHO89iMMQcVabzw5KlVEgpEn+Hxu2geBSh/zPDXizYIF2q77+esWRIIRZ/g8bpoHwUqgM/z2IwwBxVpvOHqrFoSCkSf4PG7aB4FKYHO89iMMQcVabzw5KlVEgpEn+Hxu2geBSh/zPDXizYIF2q77+esWRIIRZ/g8bpoHwUqgM/z2IwwBxVpvOHqrFoSCkSf4PG7aB4FKYHO89iMMQcVabzw5KlVEgpEn+Hxu2geBSh/zPDXizYIF2q77+esWRIIRZ/g8bpoHwUqgM/z2IwwBxVpvOHqrFoSCkSf4PG7aB4FKYHO89iMMQcVabzw5KlVEgpEn+Hxu2geBSh/zPDXizYIF2q77+esWRIIRZ/g8bpoHwUqgM/z2IwwBxVpvOHqrFoSCkSf4PG7aB4FKYHO89iMMQcVabzw5KlVEgpEn+Hxu2geBSh/zPDXizYIF2q77+esWRIIRZ/g8bpoHwUqgM/z2IwwBxVpvOHqrFoSCkSf4PG7aB4FKYHO89iMMQcVabzw5KlVEgpEn+Hxu2geBSh/zPDXizYIF2q77+esWRIIRZ/g8bpoHwUqgM/z2IwwBxVpvOHqrFoSCkSf4PG7aB4FKYHO89iMMQcVabzw5KlVEgpEn+Hxu2geBSh/zPDXizYIF2q77+esWRIIRZ/g8bpoHwUqgM/z2IwwBxVpvOHqrFoSCg==",
       );
       audio.play();
     } catch (e) {}
@@ -559,9 +576,9 @@ class QRScanner {
         this.scannedCodes.add(qrCode);
 
         this.showResult(
-          `✓ ${response.record.user.name} - Attendance recorded!`,
+          ` ${response.record.user.name} - Attendance recorded!`,
           "success",
-          true // Auto-hide after 5 seconds
+          true, // Auto-hide after 5 seconds
         );
 
         // Add to recent scans
@@ -580,7 +597,7 @@ class QRScanner {
       this.showResult(
         `❌ ${error.message || "Failed to record attendance"}`,
         "error",
-        true // Auto-hide after timeout
+        true, // Auto-hide after timeout
       );
       console.error("Scan error:", error);
     } finally {

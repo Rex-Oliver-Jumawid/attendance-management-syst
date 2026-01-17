@@ -71,7 +71,7 @@ exports.createSchedule = async (req, res) => {
     try {
       // Get admin info for sending email
       const admin = await User.findById(adminId).select(
-        "firstName lastName email emailPassword"
+        "firstName lastName email emailPassword",
       );
 
       if (admin && admin.email && admin.emailPassword) {
@@ -86,7 +86,7 @@ exports.createSchedule = async (req, res) => {
 
         if (memberEmails.length > 0) {
           console.log(
-            `Sending schedule announcement to ${memberEmails.length} members from ${admin.email}...`
+            `Sending schedule announcement to ${memberEmails.length} members from ${admin.email}...`,
           );
 
           const adminInfo = {
@@ -98,7 +98,7 @@ exports.createSchedule = async (req, res) => {
           await emailService.sendScheduleAnnouncement(
             schedule,
             memberEmails,
-            adminInfo
+            adminInfo,
           );
         }
       } else {
@@ -254,11 +254,20 @@ exports.deleteSchedule = async (req, res) => {
       });
     }
 
+    // Delete all attendance records associated with this schedule
+    const deletedRecords = await AttendanceRecord.deleteMany({
+      scheduleId: id,
+    });
+    console.log(
+      `Deleted ${deletedRecords.deletedCount} attendance records for schedule ${id}`,
+    );
+
     await schedule.deleteOne();
 
     res.status(200).json({
       success: true,
       message: "Schedule deleted successfully",
+      deletedAttendanceRecords: deletedRecords.deletedCount,
     });
   } catch (error) {
     res.status(500).json({
@@ -305,12 +314,12 @@ exports.sendAbsenceFollowUp = async (req, res) => {
     }).select("userId");
 
     const attendedUserIds = attendanceRecords.map((record) =>
-      record.userId.toString()
+      record.userId.toString(),
     );
 
     // Find members who didn't attend
     const absentMembers = allMembers.filter(
-      (member) => !attendedUserIds.includes(member._id.toString())
+      (member) => !attendedUserIds.includes(member._id.toString()),
     );
 
     if (absentMembers.length === 0) {
@@ -326,7 +335,7 @@ exports.sendAbsenceFollowUp = async (req, res) => {
 
     // Get admin info for sending email
     const admin = await User.findById(adminId).select(
-      "firstName lastName email emailPassword"
+      "firstName lastName email emailPassword",
     );
 
     if (!admin || !admin.email || !admin.emailPassword) {
@@ -345,13 +354,13 @@ exports.sendAbsenceFollowUp = async (req, res) => {
 
     // Send the absence follow-up emails
     console.log(
-      `Sending absence follow-up to ${absentMemberEmails.length} members for schedule: ${schedule.name}`
+      `Sending absence follow-up to ${absentMemberEmails.length} members for schedule: ${schedule.name}`,
     );
 
     const result = await emailService.sendAbsenceFollowUp(
       schedule,
       absentMemberEmails,
-      adminInfo
+      adminInfo,
     );
 
     if (result.success) {

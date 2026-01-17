@@ -41,22 +41,16 @@ exports.scanQR = async (req, res) => {
       });
     }
 
-    // Check if user already has attendance for this schedule today
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
+    // Check if user already has attendance for this specific schedule
     const existingAttendance = await AttendanceRecord.findOne({
       userId: user._id,
-      massType: schedule.massType,
-      scannedAt: { $gte: today, $lt: tomorrow },
+      scheduleId: scheduleId,
     });
 
     if (existingAttendance) {
       return res.status(400).json({
         success: false,
-        message: "Attendance already recorded for this schedule today",
+        message: "Attendance already recorded for this schedule",
       });
     }
 
@@ -545,7 +539,7 @@ exports.getAvailableBalance = async (req, res) => {
 
     const totalContributions = contributions.reduce(
       (sum, c) => sum + c.amount,
-      0
+      0,
     );
     const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
     const availableBalance = totalContributions - totalExpenses;
@@ -586,14 +580,14 @@ exports.getScheduleAttendees = async (req, res) => {
 
     // Get all attendance records for this schedule
     const attendanceRecords = await AttendanceRecord.find({ scheduleId })
-      .populate("userId", "firstName lastName email")
+      .populate("userId", "firstName lastName email qrCode")
       .populate("moderatorId", "firstName lastName")
       .sort({ scannedAt: -1 });
 
     // Get contributions for this schedule
     const contributions = await Contribution.find({ scheduleId }).populate(
       "userId",
-      "firstName lastName email"
+      "firstName lastName email",
     );
 
     // Create a map of contributions by userId
@@ -616,6 +610,7 @@ exports.getScheduleAttendees = async (req, res) => {
           ? `${record.userId.firstName} ${record.userId.lastName}`
           : "Unknown",
         userEmail: record.userId?.email || "N/A",
+        qrCode: record.userId?.qrCode || null,
         scannedAt: record.scannedAt,
         notes: record.notes,
         moderator: record.moderatorId
