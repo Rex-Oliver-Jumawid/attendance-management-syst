@@ -13,6 +13,7 @@ const {
   getAttendanceReports,
   deleteAttendanceRecord,
   updateEmailConfig,
+  deleteUser,
 } = require("../controllers/admin.controller");
 const {
   createSchedule,
@@ -31,6 +32,7 @@ router.use(authorize("admin"));
 router.get("/users", getAllUsers);
 router.get("/users/:id", getUserById);
 router.put("/users/:id/status", updateUserStatus);
+router.delete("/users/:id", deleteUser);
 
 // Moderator management routes
 router.get("/moderators", getAllModerators);

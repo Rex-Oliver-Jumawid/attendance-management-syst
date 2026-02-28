@@ -9,6 +9,7 @@ const {
   getAllUsers,
   updateUserStatus,
   addContribution,
+  updateContribution,
   getAllContributions,
   addExpense,
   getAllExpenses,
@@ -37,6 +38,7 @@ router.patch("/users/:id/status", updateUserStatus);
 
 // Financial routes
 router.post("/contributions", addContribution);
+router.put("/contributions/:id", updateContribution);
 router.get("/contributions", getAllContributions);
 router.post("/expenses", addExpense);
 router.get("/expenses", getAllExpenses);

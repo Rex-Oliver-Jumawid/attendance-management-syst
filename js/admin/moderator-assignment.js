@@ -97,8 +97,8 @@ class ModeratorAssignment {
       .map(
         (user) =>
           `<option value="${user._id}">
-            ${user.firstName} ${user.lastName} (${user.username})
-          </option>`
+            ${user.firstName} ${user.lastName} 
+          </option>`,
       )
       .join("");
 
@@ -138,7 +138,7 @@ class ModeratorAssignment {
             </button>
           </div>
         </div>
-      `
+      `,
       )
       .join("");
 
@@ -152,7 +152,7 @@ class ModeratorAssignment {
     const username = document.getElementById("assignUsername").value.trim();
     const password = document.getElementById("assignPassword").value;
     const confirmPassword = document.getElementById(
-      "assignConfirmPassword"
+      "assignConfirmPassword",
     ).value;
 
     if (!userId) {
@@ -250,7 +250,7 @@ class ModeratorAssignment {
 
     if (
       !confirm(
-        `Are you sure you want to remove moderator role from ${name}? They will be changed back to a regular member.`
+        `Are you sure you want to remove moderator role from ${name}? They will be changed back to a regular member.`,
       )
     ) {
       console.log("User cancelled removal");
@@ -297,7 +297,7 @@ window.moderatorAssignment = null; // Make it globally accessible
 
 document.addEventListener("DOMContentLoaded", () => {
   const moderatorsLink = document.querySelector(
-    'a[href="#moderators-section"]'
+    'a[href="#moderators-section"]',
   );
   if (moderatorsLink) {
     moderatorsLink.addEventListener("click", () => {

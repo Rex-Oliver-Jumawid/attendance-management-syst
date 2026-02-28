@@ -228,7 +228,7 @@ exports.removeModerator = async (req, res) => {
     // Deactivate assignment
     await ModeratorAssignment.updateMany(
       { moderatorId: userId },
-      { isActive: false }
+      { isActive: false },
     );
     console.log("Moderator assignments deactivated");
 
@@ -257,7 +257,7 @@ exports.removeModerator = async (req, res) => {
 exports.getAllModerators = async (req, res) => {
   try {
     const moderators = await User.find({ role: "moderator" }).select(
-      "-password"
+      "-password",
     );
 
     // Get attendance scan counts for each moderator
@@ -270,7 +270,7 @@ exports.getAllModerators = async (req, res) => {
           ...mod.toObject(),
           totalScans: scanCount,
         };
-      })
+      }),
     );
 
     res.status(200).json({
@@ -652,7 +652,7 @@ exports.getAttendanceReports = async (req, res) => {
     // Calculate stats
     const totalAttendance = records.length;
     const uniqueAttendees = new Set(
-      records.map((r) => r.userId?._id.toString())
+      records.map((r) => r.userId?._id.toString()),
     ).size;
 
     // For "day" range, get schedules for today and match them with attendance
@@ -685,7 +685,7 @@ exports.getAttendanceReports = async (req, res) => {
       });
 
       console.log(
-        `Found ${todaySchedules.length} schedules for today (day ${dayOfWeek})`
+        `Found ${todaySchedules.length} schedules for today (day ${dayOfWeek})`,
       );
 
       // Create breakdown for each schedule
@@ -732,7 +732,7 @@ exports.getAttendanceReports = async (req, res) => {
 
       const scheduleIds = [
         ...new Set(
-          records.map((r) => r.scheduleId?.toString()).filter(Boolean)
+          records.map((r) => r.scheduleId?.toString()).filter(Boolean),
         ),
       ];
       console.log(`Found ${scheduleIds.length} unique schedule IDs`);
@@ -832,6 +832,59 @@ exports.deleteAttendanceRecord = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Error deleting attendance record",
+      error: error.message,
+    });
+  }
+};
+
+// @desc    Delete a member user
+// @route   DELETE /api/admin/users/:id
+// @access  Private (Admin)
+exports.deleteUser = async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    if (user.role === "admin") {
+      return res.status(403).json({
+        success: false,
+        message: "Cannot delete an admin user",
+      });
+    }
+
+    if (user.role === "moderator") {
+      return res.status(400).json({
+        success: false,
+        message: "Demote the moderator to member first before deleting",
+      });
+    }
+
+    // Delete related records
+    await AttendanceRecord.deleteMany({ userId });
+    await AttendanceSession.deleteMany({ userId });
+
+    const Contribution = require("../models/Contribution");
+    await Contribution.deleteMany({ userId });
+
+    // Delete the user
+    await User.findByIdAndDelete(userId);
+
+    res.status(200).json({
+      success: true,
+      message: "User and related records deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting user:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error deleting user",
       error: error.message,
     });
   }

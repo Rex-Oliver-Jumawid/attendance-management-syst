@@ -75,6 +75,20 @@
   cursor: not-allowed;
 }
 
+.btn-small {
+  padding: 5px 10px;
+  font-size: 12px;
+  width: auto;
+}
+
+.btn-primary.btn-small {
+  padding: 8px 24px;
+  font-size: 12px;
+  width: auto;
+  box-shadow: none;
+  transform: none;
+}
+
 /* Scan Result Messages */
 .scan-success {
   background: #d4edda;
@@ -713,6 +727,12 @@ tr:hover {
   .schedule-cards-grid {
     grid-template-columns: 1fr;
   }
+}
+
+#attendanceRecordsTable {
+  box-shadow: 0 0 0 2px #000;
+  border-radius: 8px;
+  overflow: hidden;
 }
 
 /* QR Reader Camera */

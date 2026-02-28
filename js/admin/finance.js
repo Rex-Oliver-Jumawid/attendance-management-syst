@@ -19,7 +19,7 @@ function populateYearFilter() {
   const yearSelect = document.getElementById("financeFilterYear");
   const currentYear = new Date().getFullYear();
 
-  for (let year = 2020; year <= currentYear + 1; year++) {
+  for (let year = 2026; year <= currentYear; year++) {
     const option = document.createElement("option");
     option.value = year;
     option.textContent = year;
@@ -34,7 +34,7 @@ function populateMonthlyBreakdownYearFilter() {
 
   // Set current year as default
   yearSelect.innerHTML = "";
-  for (let year = 2020; year <= currentYear + 1; year++) {
+  for (let year = 2026; year <= currentYear; year++) {
     const option = document.createElement("option");
     option.value = year;
     option.textContent = year;
@@ -89,7 +89,7 @@ function updateFinanceSummary() {
         );
       });
       filteredExpenses = allExpenses.filter(
-        (e) => e.month === parseInt(month) && e.year === parseInt(year)
+        (e) => e.month === parseInt(month) && e.year === parseInt(year),
       );
     } else if (year) {
       filteredContribs = allContributions.filter((c) => {
@@ -110,17 +110,15 @@ function updateFinanceSummary() {
   const totalExpenses = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
   const netBalance = totalContribs - totalExpenses;
 
-  document.getElementById(
-    "totalContributions"
-  ).textContent = `₱${totalContribs.toFixed(2)}`;
-  document.getElementById(
-    "totalExpenses"
-  ).textContent = `₱${totalExpenses.toFixed(2)}`;
+  document.getElementById("totalContributions").textContent =
+    `₱${totalContribs.toFixed(2)}`;
+  document.getElementById("totalExpenses").textContent =
+    `₱${totalExpenses.toFixed(2)}`;
   document.getElementById("netBalance").textContent = `₱${netBalance.toFixed(
-    2
+    2,
   )}`;
   document.getElementById("netBalance").style.color =
-    netBalance >= 0 ? "#3d5a80" : "#e74c3c";
+    netBalance >= 0 ? "#FFF" : "#e74c3c";
 
   // Update monthly breakdown
   updateMonthlyBreakdown();
@@ -141,7 +139,7 @@ function updateMonthlyBreakdown() {
     });
 
     const expenses = allExpenses.filter(
-      (e) => e.month === month && e.year === parseInt(year)
+      (e) => e.month === month && e.year === parseInt(year),
     );
 
     const totalContribs = contribs.reduce((sum, c) => sum + c.amount, 0);
@@ -178,13 +176,13 @@ function renderMonthlyBreakdown(data) {
             (item) => `
           <tr>
             <td>${item.month}</td>
-            <td style="color: #3d5a80;">₱${item.contributions.toFixed(2)}</td>
+            <td style="color: #000;">₱${item.contributions.toFixed(2)}</td>
             <td style="color: #e74c3c;">₱${item.expenses.toFixed(2)}</td>
-            <td style="color: ${item.balance >= 0 ? "#3d5a80" : "#e74c3c"};">
+            <td style="color: ${item.balance >= 0 ? "#000" : "#e74c3c"};">
               ₱${item.balance.toFixed(2)}
             </td>
           </tr>
-        `
+        `,
           )
           .join("")}
       </tbody>
@@ -231,7 +229,7 @@ function applyFinanceFilters() {
         );
       });
       filteredExpenses = allExpenses.filter(
-        (e) => e.month === parseInt(month) && e.year === parseInt(year)
+        (e) => e.month === parseInt(month) && e.year === parseInt(year),
       );
     } else if (year) {
       filteredContribs = allContributions.filter((c) => {
@@ -302,7 +300,7 @@ function renderContributionsTable(contributions) {
               contrib.scheduleId.massType
             } - ${contrib.scheduleId.dayOfWeek.join(", ")}`
           : `${contrib.scheduleId.massType} - ${formatDate(
-              contrib.scheduleId.specificDate
+              contrib.scheduleId.specificDate,
             )}`
         : "N/A";
 
@@ -313,7 +311,7 @@ function renderContributionsTable(contributions) {
         <td>${scheduleName}</td>
         <td>₱${contrib.amount.toFixed(2)}</td>
         <td>${contrib.recordedBy.firstName} ${contrib.recordedBy.lastName}</td>
-        <td>${contrib.notes || "-"}</td>
+
       </tr>
     `;
     })
@@ -327,7 +325,7 @@ function renderExpensesTable(expenses) {
   if (!expenses || expenses.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="7" style="text-align: center;">No expenses found</td>
+        <td colspan="6" style="text-align: center;">No expenses found</td>
       </tr>
     `;
     return;
@@ -343,9 +341,8 @@ function renderExpensesTable(expenses) {
       <td>₱${expense.amount.toFixed(2)}</td>
       <td>${getMonthName(expense.month)} ${expense.year}</td>
       <td>${expense.recordedBy.firstName} ${expense.recordedBy.lastName}</td>
-      <td>${expense.notes || "-"}</td>
     </tr>
-  `
+  `,
     )
     .join("");
 }

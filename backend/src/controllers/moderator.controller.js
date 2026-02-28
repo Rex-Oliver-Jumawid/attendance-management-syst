@@ -427,6 +427,53 @@ exports.addContribution = async (req, res) => {
   }
 };
 
+// @desc    Update an existing contribution
+// @route   PUT /api/moderator/contributions/:id
+// @access  Private (Moderator)
+exports.updateContribution = async (req, res) => {
+  try {
+    const contributionId = req.params.id;
+    const { amount, notes } = req.body;
+
+    if (!amount || amount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "A valid amount is required",
+      });
+    }
+
+    const contribution = await Contribution.findById(contributionId);
+
+    if (!contribution) {
+      return res.status(404).json({
+        success: false,
+        message: "Contribution not found",
+      });
+    }
+
+    contribution.amount = amount;
+    if (notes) contribution.notes = notes;
+    await contribution.save();
+
+    await contribution.populate("userId", "firstName lastName");
+    await contribution.populate("scheduleId");
+    await contribution.populate("recordedBy", "firstName lastName");
+
+    res.status(200).json({
+      success: true,
+      message: "Contribution updated successfully",
+      data: contribution,
+    });
+  } catch (error) {
+    console.error("Update contribution error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error updating contribution",
+      error: error.message,
+    });
+  }
+};
+
 // @desc    Get all contributions
 // @route   GET /api/moderator/contributions
 // @access  Private (Moderator)

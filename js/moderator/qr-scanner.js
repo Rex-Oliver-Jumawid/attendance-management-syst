@@ -296,7 +296,7 @@ class QRScanner {
     if (availableSchedules.length === 0) {
       this.scheduleCardsContainer.innerHTML = `
         <div style="text-align: center; padding: 60px; color: #666; grid-column: 1/-1;">
-          <h3 style="margin-bottom: 10px;">⚠️ No Active Schedules</h3>
+          <h3 style="margin-bottom: 10px;">No Active Schedules</h3>
           <p>No mass schedules are currently available for scanning.</p>
           <p style="margin-top: 10px; font-size: 14px;">Schedules may have ended or are not scheduled for today.</p>
         </div>
@@ -445,6 +445,21 @@ class QRScanner {
       return;
     }
 
+    // Clean up any previous instance before creating a new one
+    if (this.html5QrCode) {
+      try {
+        await this.html5QrCode.stop();
+      } catch (e) {
+        /* ignore */
+      }
+      try {
+        await this.html5QrCode.clear();
+      } catch (e) {
+        /* ignore */
+      }
+      this.html5QrCode = null;
+    }
+
     try {
       console.log("Setting qr-reader display to block");
       this.qrReader.style.display = "block";
@@ -475,6 +490,20 @@ class QRScanner {
     } catch (err) {
       console.error("❌ CAMERA ERROR:", err);
       console.error("Error stack:", err.stack);
+      // Fully release the camera on failure
+      if (this.html5QrCode) {
+        try {
+          await this.html5QrCode.stop();
+        } catch (e) {
+          /* ignore */
+        }
+        try {
+          await this.html5QrCode.clear();
+        } catch (e) {
+          /* ignore */
+        }
+        this.html5QrCode = null;
+      }
       this.qrReader.style.display = "none";
       this.showResult(`Camera Error: ${err.message}`, "error");
       this.isScanning = false;
@@ -484,12 +513,20 @@ class QRScanner {
   async stopCamera() {
     console.log("=== STOP CAMERA ===");
 
-    if (this.html5QrCode && this.isScanning) {
+    if (this.html5QrCode) {
       try {
-        await this.html5QrCode.stop();
-        console.log("Camera stopped");
+        if (this.isScanning) {
+          await this.html5QrCode.stop();
+          console.log("Camera stopped");
+        }
       } catch (err) {
         console.error("Error stopping:", err);
+      }
+      try {
+        await this.html5QrCode.clear();
+        console.log("Camera cleared");
+      } catch (err) {
+        console.error("Error clearing:", err);
       }
     }
 

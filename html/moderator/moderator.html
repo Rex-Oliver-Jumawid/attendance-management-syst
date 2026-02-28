@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
   <head>
     <meta charset="UTF-8" />
@@ -181,12 +181,12 @@
 
         <!-- Users List -->
         <div class="table-container">
-          <h3>All Users</h3>
+          <h3>All Members</h3>
           <div class="table-controls" style="margin-bottom: 15px">
             <input
               type="text"
               id="userSearchInput"
-              placeholder="Search users..."
+              placeholder="Search members..."
               style="
                 padding: 8px;
                 border: 1px solid #ddd;
@@ -292,6 +292,10 @@
 
           <!-- Scan Statistics -->
           <div class="stats-grid" style="margin-bottom: 20px">
+            <div class="stat-card">
+              <h3 id="scannedCount">0</h3>
+              <p>Scanned This Session</p>
+            </div>
             <div class="stat-card">
               <h3 id="lastScannedName">-</h3>
               <p>Last Scanned</p>
@@ -491,7 +495,7 @@
                   margin: 0;
                   font-size: 32px;
                   font-weight: 700;
-                  color: #3d5a80;
+                  color: #000;
                 "
               >
                 ₱0.00
@@ -615,12 +619,11 @@
                 <th>Amount</th>
                 <th>Month/Year</th>
                 <th>Recorded By</th>
-                <th>Notes</th>
               </tr>
             </thead>
             <tbody id="expensesTableBody">
               <tr>
-                <td colspan="7" style="text-align: center">
+                <td colspan="6" style="text-align: center">
                   Loading expenses...
                 </td>
               </tr>
@@ -686,6 +689,20 @@
               targetSection.style.display = "block";
             }
 
+            // Reload data when navigating to specific sections
+            if (targetId === "home-section") {
+              loadHomeStats();
+            } else if (targetId === "users-section") {
+              loadUsers();
+            } else if (targetId === "contributions-section") {
+              if (typeof contributionsManager !== "undefined") {
+                contributionsManager.loadScheduleAttendance();
+              }
+            } else if (targetId === "expenses-section") {
+              loadAvailableBalance();
+              loadExpenses();
+            }
+
             // Update active link
             document
               .querySelectorAll(".nav-link")
@@ -716,9 +733,8 @@
               userData.role.toUpperCase();
 
             // Load profile section
-            document.getElementById(
-              "profileName"
-            ).textContent = `${userData.firstName} ${userData.lastName}`;
+            document.getElementById("profileName").textContent =
+              `${userData.firstName} ${userData.lastName}`;
             document.getElementById("profileEmail").textContent =
               userData.email;
             document.getElementById("profileUsername").textContent =
@@ -727,7 +743,7 @@
               userData.phoneNumber || "N/A";
             document.getElementById("profileRole").textContent = userData.role;
             document.getElementById("profileJoinDate").textContent = formatDate(
-              userData.createdAt
+              userData.createdAt,
             );
 
             // Load home section stats
@@ -768,7 +784,7 @@
                     schedule.dayOfWeek.includes(currentDay)
                   );
                 }
-              }
+              },
             );
 
             document.getElementById("activeSchedules").textContent =

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -776,12 +776,11 @@
                 <th>Schedule</th>
                 <th>Amount</th>
                 <th>Recorded By</th>
-                <th>Notes</th>
               </tr>
             </thead>
             <tbody id="financeContribTableBody">
               <tr>
-                <td colspan="6" style="text-align: center">Loading...</td>
+                <td colspan="5" style="text-align: center">Loading...</td>
               </tr>
             </tbody>
           </table>
@@ -803,12 +802,11 @@
                 <th>Amount</th>
                 <th>Month/Year</th>
                 <th>Recorded By</th>
-                <th>Notes</th>
               </tr>
             </thead>
             <tbody id="financeExpensesTableBody">
               <tr>
-                <td colspan="7" style="text-align: center">Loading...</td>
+                <td colspan="6" style="text-align: center">Loading...</td>
               </tr>
             </tbody>
           </table>
@@ -922,6 +920,13 @@
             ) {
               window.moderatorAssignment.loadModerators();
               window.moderatorAssignment.loadAvailableUsers();
+            } else if (
+              targetId === "home-section" &&
+              window.massScheduleManager
+            ) {
+              window.massScheduleManager.loadAdminStats();
+            } else if (targetId === "finance-section") {
+              loadFinanceData();
             }
 
             // Update active link
@@ -962,9 +967,8 @@
               userData.email;
             document.getElementById("profileRole").textContent =
               userData.role.toUpperCase();
-            document.getElementById(
-              "profileName"
-            ).textContent = `${userData.firstName} ${userData.lastName}`;
+            document.getElementById("profileName").textContent =
+              `${userData.firstName} ${userData.lastName}`;
           }
         } catch (error) {
           console.error("Error loading user data:", error);
@@ -990,13 +994,13 @@
 
               if (result.success) {
                 alert(
-                  "Email configuration saved successfully! Schedule announcements will be sent from your email."
+                  "Email configuration saved successfully! Schedule announcements will be sent from your email.",
                 );
                 document.getElementById("emailPassword").value = "";
               } else {
                 alert(
                   "Error saving email configuration: " +
-                    (result.message || "Unknown error")
+                    (result.message || "Unknown error"),
                 );
               }
             } catch (error) {

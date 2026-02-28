@@ -15,7 +15,7 @@ class ContributionsManager {
 
   initElements() {
     this.scheduleAttendanceList = document.getElementById(
-      "scheduleAttendanceList"
+      "scheduleAttendanceList",
     );
   }
 
@@ -55,7 +55,7 @@ class ContributionsManager {
         throw new Error(
           schedulesResp.message ||
             attendanceResp.message ||
-            "Failed to load data"
+            "Failed to load data",
         );
       }
 
@@ -96,7 +96,7 @@ class ContributionsManager {
       console.log("Attendance by schedule:", attendanceBySchedule);
       console.log(
         "Schedule IDs:",
-        schedules.map((s) => getId(s._id))
+        schedules.map((s) => getId(s._id)),
       );
 
       // Filter schedules based on current range
@@ -156,7 +156,8 @@ class ContributionsManager {
             // Find contribution for this user and schedule
             const contrib = contributions.find(
               (c) =>
-                getId(c.userId) === userId && getId(c.scheduleId) === scheduleId
+                getId(c.userId) === userId &&
+                getId(c.scheduleId) === scheduleId,
             );
 
             return {
@@ -169,7 +170,7 @@ class ContributionsManager {
               contributionAmount: contrib ? contrib.amount : null,
               contributionId: contrib ? contrib._id : null,
             };
-          }
+          },
         );
 
         return {
@@ -197,7 +198,7 @@ class ContributionsManager {
   displayStats() {
     const totalAttendance = this.scheduleData.reduce(
       (sum, s) => sum + s.attendanceCount,
-      0
+      0,
     );
 
     // Count unique attendees
@@ -293,7 +294,7 @@ class ContributionsManager {
                       </button>
                     </td>
                   </tr>
-                `
+                `,
                   )
                   .join("")}
               </tbody>
@@ -323,8 +324,8 @@ class ContributionsManager {
               : "Specific Date"
           }</p>
           <p><strong>Time:</strong> ${schedule.startTime} - ${
-      schedule.endTime
-    }</p>
+            schedule.endTime
+          }</p>
           ${attendeesHtml}
         </div>
       </div>
@@ -355,17 +356,31 @@ class ContributionsManager {
     }
 
     try {
-      const data = {
-        userId: userId,
-        scheduleId: scheduleId,
-        amount: amount,
-        notes: `Declared by moderator on ${new Date().toLocaleDateString()}`,
-      };
+      let response;
 
-      const response = await api.addContribution(data);
+      if (existingContributionId) {
+        // Update existing contribution
+        response = await api.updateContribution(existingContributionId, {
+          amount: amount,
+          notes: `Updated by moderator on ${new Date().toLocaleDateString()}`,
+        });
+      } else {
+        // Create new contribution
+        const data = {
+          userId: userId,
+          scheduleId: scheduleId,
+          amount: amount,
+          notes: `Declared by moderator on ${new Date().toLocaleDateString()}`,
+        };
+        response = await api.addContribution(data);
+      }
 
       if (response.success) {
-        showSuccess("Contribution saved successfully");
+        showSuccess(
+          existingContributionId
+            ? "Contribution updated successfully"
+            : "Contribution saved successfully",
+        );
         this.loadScheduleAttendance();
       } else {
         throw new Error(response.message || "Failed to save contribution");

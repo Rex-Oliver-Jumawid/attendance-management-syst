@@ -25,8 +25,7 @@ async function loadAvailableBalance() {
     const balanceElement = document.getElementById("availableBalance");
     if (balanceElement) {
       balanceElement.textContent = `₱${availableBalance.toFixed(2)}`;
-      balanceElement.style.color =
-        availableBalance >= 0 ? "#3d5a80" : "#e74c3c";
+      balanceElement.style.color = availableBalance >= 0 ? "#000" : "#e74c3c";
     }
   } catch (error) {
     console.error("Error loading balance:", error);
@@ -43,7 +42,7 @@ async function loadExpenses() {
     console.error("Error loading expenses:", error);
     document.getElementById("expensesTableBody").innerHTML = `
       <tr>
-        <td colspan="7" style="text-align: center; color: #e74c3c;">
+        <td colspan="6" style="text-align: center; color: #e74c3c;">
           ${error.message || "Failed to load expenses"}
         </td>
       </tr>
@@ -70,8 +69,8 @@ function setupExpenseForm() {
       if (amount > availableBalance) {
         showError(
           `Expense amount (₱${amount.toFixed(
-            2
-          )}) exceeds available balance (₱${availableBalance.toFixed(2)})`
+            2,
+          )}) exceeds available balance (₱${availableBalance.toFixed(2)})`,
         );
         submitBtn.disabled = false;
         submitBtn.textContent = originalBtnText;
@@ -116,8 +115,8 @@ function populateYearFilters() {
   const yearSelect = document.getElementById("expenseFilterYear");
   const currentYear = new Date().getFullYear();
 
-  // Add years from 2020 to current year + 1
-  for (let year = 2020; year <= currentYear + 1; year++) {
+  // Add years from 2026 to current year
+  for (let year = 2026; year <= currentYear; year++) {
     const option = document.createElement("option");
     option.value = year;
     option.textContent = year;
@@ -155,7 +154,7 @@ function renderExpensesTable(expenses) {
   if (!expenses || expenses.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="7" style="text-align: center;">No expenses found</td>
+        <td colspan="6" style="text-align: center;">No expenses found</td>
       </tr>
     `;
     return;
@@ -171,9 +170,8 @@ function renderExpensesTable(expenses) {
       <td>₱${expense.amount.toFixed(2)}</td>
       <td>${getMonthName(expense.month)} ${expense.year}</td>
       <td>${expense.recordedBy.firstName} ${expense.recordedBy.lastName}</td>
-      <td>${expense.notes || "-"}</td>
     </tr>
-  `
+  `,
     )
     .join("");
 }

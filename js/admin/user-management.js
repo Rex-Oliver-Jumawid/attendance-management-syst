@@ -59,10 +59,10 @@ class UserManagement {
     const filtered = this.users.filter((user) => {
       // Search filter
       const matchesSearch =
-        user.firstName.toLowerCase().includes(searchTerm) ||
-        user.lastName.toLowerCase().includes(searchTerm) ||
-        user.email.toLowerCase().includes(searchTerm) ||
-        user.username.toLowerCase().includes(searchTerm);
+        user.firstName?.toLowerCase().includes(searchTerm) ||
+        user.lastName?.toLowerCase().includes(searchTerm) ||
+        user.email?.toLowerCase().includes(searchTerm) ||
+        user.username?.toLowerCase().includes(searchTerm);
 
       // Role filter
       const matchesRole = !roleFilter || user.role === roleFilter;
@@ -82,7 +82,7 @@ class UserManagement {
 
     if (users.length === 0) {
       this.usersTableBody.innerHTML =
-        '<tr><td colspan="7">No users found</td></tr>';
+        '<tr><td colspan="7">No user found</td></tr>';
       return;
     }
 
@@ -92,7 +92,7 @@ class UserManagement {
       <tr>
         <td>${user.firstName} ${user.lastName}</td>
         <td>${user.email}</td>
-        <td>${user.username}</td>
+        <td>${user.username || "N/A"}</td>
         <td>
           <span class="badge badge-${user.role}">
             ${user.role.toUpperCase()}
@@ -110,18 +110,25 @@ class UserManagement {
           ${
             user.role === "admin"
               ? '<span style="color: #666; font-size: 13px;">Protected</span>'
-              : `<button 
+              : user.role === "moderator"
+                ? `<button 
                   class="btn-toggle btn-small" 
-                  onclick="userManagement.toggleUserStatus('${user._id}', ${
-                  user.isActive
-                })"
+                  style="background-color: #393D7E; color: white; border: none; width: 80px; border-radius: 6px;"
+                  onclick="userManagement.demoteToMember('${user._id}')"
                 >
-                  ${user.isActive ? "Deactivate" : "Activate"}
+                  Demote
+                </button>`
+                : `<button 
+                  class="btn-toggle btn-small" 
+                  style="background-color: #222222; color: white; border: none; width: 80px; border-radius: 6px;"
+                  onclick="userManagement.deleteUser('${user._id}')"
+                >
+                  Delete
                 </button>`
           }
         </td>
       </tr>
-    `
+    `,
       )
       .join("");
 
@@ -139,7 +146,7 @@ class UserManagement {
             !newStatus
               ? "They will not be able to log in or generate QR codes."
               : ""
-          }`
+          }`,
         )
       ) {
         return;
@@ -149,12 +156,62 @@ class UserManagement {
 
       if (response.success) {
         showSuccess(
-          `User ${newStatus ? "activated" : "deactivated"} successfully!`
+          `User ${newStatus ? "activated" : "deactivated"} successfully!`,
         );
         await this.loadUsers();
       }
     } catch (error) {
       showError(error.message || "Failed to update user status");
+    }
+  }
+
+  async demoteToMember(userId) {
+    const user = this.users.find((u) => u._id === userId);
+    if (!user) return;
+
+    if (
+      !confirm(
+        `Are you sure you want to demote ${user.firstName} ${user.lastName} from Moderator to Member? Their moderator credentials will be removed.`,
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const response = await api.removeModerator(userId);
+      if (response.success) {
+        showSuccess(
+          `${user.firstName} ${user.lastName} has been demoted to Member.`,
+        );
+        await this.loadUsers();
+        this.refreshAdminStats();
+      }
+    } catch (error) {
+      showError(error.message || "Failed to demote user");
+    }
+  }
+
+  async deleteUser(userId) {
+    const user = this.users.find((u) => u._id === userId);
+    if (!user) return;
+
+    if (
+      !confirm(
+        `Are you sure you want to permanently delete ${user.firstName} ${user.lastName}? This action cannot be undone and will remove all their records.`,
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const response = await api.deleteUser(userId);
+      if (response.success) {
+        showSuccess(`${user.firstName} ${user.lastName} has been deleted.`);
+        await this.loadUsers();
+        this.refreshAdminStats();
+      }
+    } catch (error) {
+      showError(error.message || "Failed to delete user");
     }
   }
 
@@ -182,6 +239,9 @@ document.addEventListener("DOMContentLoaded", () => {
     usersLink.addEventListener("click", () => {
       if (!userManagement) {
         userManagement = new UserManagement();
+        window.userManagement = userManagement;
+      } else {
+        userManagement.loadUsers();
       }
     });
   }

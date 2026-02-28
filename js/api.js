@@ -104,7 +104,7 @@ class API {
     return this.post(
       API_CONFIG.ENDPOINTS.LOGIN,
       { email, password },
-      { auth: false }
+      { auth: false },
     );
   }
 
@@ -128,14 +128,14 @@ class API {
   async getUserAttendanceHistory(params = {}) {
     const queryString = new URLSearchParams(params).toString();
     return this.get(
-      `${API_CONFIG.ENDPOINTS.USER_ATTENDANCE_HISTORY}?${queryString}`
+      `${API_CONFIG.ENDPOINTS.USER_ATTENDANCE_HISTORY}?${queryString}`,
     );
   }
 
   async getUserAttendanceStats(params = {}) {
     const queryString = new URLSearchParams(params).toString();
     return this.get(
-      `${API_CONFIG.ENDPOINTS.USER_ATTENDANCE_STATS}?${queryString}`
+      `${API_CONFIG.ENDPOINTS.USER_ATTENDANCE_STATS}?${queryString}`,
     );
   }
 
@@ -146,7 +146,7 @@ class API {
 
   async getModeratorRecentScans(limit = 20, dateRange = "day") {
     return this.get(
-      `${API_CONFIG.ENDPOINTS.MODERATOR_RECENT_SCANS}?limit=${limit}&range=${dateRange}`
+      `${API_CONFIG.ENDPOINTS.MODERATOR_RECENT_SCANS}?limit=${limit}&range=${dateRange}`,
     );
   }
   async getActiveSessions() {
@@ -169,7 +169,7 @@ class API {
   async updateUserStatusAsModerator(userId, isActive) {
     return this.put(
       API_CONFIG.ENDPOINTS.MODERATOR_UPDATE_USER_STATUS.replace(":id", userId),
-      { isActive }
+      { isActive },
     );
   }
 
@@ -177,15 +177,15 @@ class API {
     return this.get(
       API_CONFIG.ENDPOINTS.MODERATOR_SCHEDULE_ATTENDEES.replace(
         ":scheduleId",
-        scheduleId
-      )
+        scheduleId,
+      ),
     );
   }
 
   async addContribution(contributionData) {
     return this.post(
       API_CONFIG.ENDPOINTS.MODERATOR_CONTRIBUTIONS,
-      contributionData
+      contributionData,
     );
   }
 
@@ -218,7 +218,7 @@ class API {
   async updateUserStatus(userId, isActive) {
     return this.put(
       `${API_CONFIG.ENDPOINTS.ADMIN_UPDATE_USER_STATUS}/${userId}/status`,
-      { isActive }
+      { isActive },
     );
   }
 
@@ -229,7 +229,7 @@ class API {
   async createModerator(moderatorData) {
     return this.post(
       API_CONFIG.ENDPOINTS.ADMIN_CREATE_MODERATOR,
-      moderatorData
+      moderatorData,
     );
   }
 
@@ -243,7 +243,18 @@ class API {
 
   async removeModerator(userId) {
     return this.delete(
-      `${API_CONFIG.ENDPOINTS.ADMIN_REMOVE_MODERATOR}/${userId}`
+      `${API_CONFIG.ENDPOINTS.ADMIN_REMOVE_MODERATOR}/${userId}`,
+    );
+  }
+
+  async deleteUser(userId) {
+    return this.delete(`${API_CONFIG.ENDPOINTS.ADMIN_USERS}/${userId}`);
+  }
+
+  async updateContribution(contributionId, data) {
+    return this.put(
+      `${API_CONFIG.ENDPOINTS.MODERATOR_CONTRIBUTIONS}/${contributionId}`,
+      data,
     );
   }
 
@@ -262,14 +273,14 @@ class API {
 
   async sendAbsenceFollowUp(scheduleId) {
     return this.post(
-      `/admin/mass-schedules/${scheduleId}/send-absence-followup`
+      `/admin/mass-schedules/${scheduleId}/send-absence-followup`,
     );
   }
 
   async getAdminAttendanceReports(params = {}) {
     const queryString = new URLSearchParams(params).toString();
     return this.get(
-      `${API_CONFIG.ENDPOINTS.ADMIN_ATTENDANCE_REPORTS}?${queryString}`
+      `${API_CONFIG.ENDPOINTS.ADMIN_ATTENDANCE_REPORTS}?${queryString}`,
     );
   }
 
@@ -294,7 +305,7 @@ class API {
   async updateMassSchedule(scheduleId, scheduleData) {
     return this.put(
       `${API_CONFIG.ENDPOINTS.MASS_SCHEDULES}/${scheduleId}`,
-      scheduleData
+      scheduleData,
     );
   }
 
@@ -320,13 +331,13 @@ class API {
   async updateMassSchedule(scheduleId, scheduleData) {
     return this.put(
       `${API_CONFIG.ENDPOINTS.ADMIN_MASS_SCHEDULES}/${scheduleId}`,
-      scheduleData
+      scheduleData,
     );
   }
 
   async deleteMassSchedule(scheduleId) {
     return this.delete(
-      `${API_CONFIG.ENDPOINTS.ADMIN_MASS_SCHEDULES}/${scheduleId}`
+      `${API_CONFIG.ENDPOINTS.ADMIN_MASS_SCHEDULES}/${scheduleId}`,
     );
   }
 }

@@ -33,7 +33,7 @@ function setupUserRegistrationForm() {
       await api.registerUser(userData);
 
       showSuccess(
-        `Member ${userData.firstName} ${userData.lastName} registered successfully!`
+        `Member ${userData.firstName} ${userData.lastName} registered successfully!`,
       );
       form.reset();
       await loadUsers();
@@ -51,7 +51,7 @@ async function loadUsers() {
   try {
     const data = await api.getAllUsersForModerator();
 
-    allUsers = data.data || [];
+    allUsers = (data.data || []).filter((user) => user.role === "member");
     renderUsersTable(allUsers);
   } catch (error) {
     console.error("Error loading users:", error);
@@ -105,15 +105,9 @@ function renderUsersTable(users) {
         >
           Download QR
         </button>
-        <button 
-          class="btn-small ${user.isActive ? "btn-secondary" : "btn-success"}" 
-          onclick="toggleUserStatus('${user._id}', ${!user.isActive})"
-        >
-          ${user.isActive ? "Deactivate" : "Activate"}
-        </button>
       </td>
     </tr>
-  `
+  `,
     )
     .join("");
 }
@@ -134,7 +128,7 @@ function setupUserSearch() {
       (user) =>
         user.firstName.toLowerCase().includes(searchTerm) ||
         user.lastName.toLowerCase().includes(searchTerm) ||
-        user.email.toLowerCase().includes(searchTerm)
+        user.email.toLowerCase().includes(searchTerm),
     );
 
     renderUsersTable(filtered);
@@ -207,7 +201,7 @@ async function downloadQRCode(userId) {
     a.href = url;
     const fileName = `${user.firstName}_${user.lastName}_QR.png`.replace(
       /\s+/g,
-      "_"
+      "_",
     );
     a.download = fileName;
     document.body.appendChild(a);
