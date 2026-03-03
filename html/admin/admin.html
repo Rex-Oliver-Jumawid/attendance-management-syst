@@ -260,6 +260,40 @@
           <p>Loading schedules...</p>
         </div>
 
+        <!-- Expired Schedules Filter -->
+        <div
+          id="expiredFilterBar"
+          style="
+            display: none;
+            margin-bottom: 15px;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: flex-start;
+          "
+        >
+          <button
+            class="btn-filter active"
+            data-expired-filter="today"
+            id="expiredFilterToday"
+          >
+            Today
+          </button>
+          <button
+            class="btn-filter"
+            data-expired-filter="month"
+            id="expiredFilterMonth"
+          >
+            This Month
+          </button>
+          <button
+            class="btn-filter"
+            data-expired-filter="all"
+            id="expiredFilterAll"
+          >
+            All Time
+          </button>
+        </div>
+
         <!-- Expired Schedules List -->
         <div
           class="schedules-list"
@@ -634,7 +668,8 @@
           <h3>Email Configuration for Schedule Announcements</h3>
           <p style="color: #666; margin-bottom: 20px">
             Set up your Gmail App Password to send schedule announcements to
-            members. Emails will be sent from your email address.
+            members. Emails will be sent from your email address. Enable 2
+            Factor Authentication to proceed.
           </p>
 
           <form id="emailConfigForm" style="max-width: 500px">

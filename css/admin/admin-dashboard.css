@@ -198,11 +198,11 @@ section.active {
   border: 2px solid #e0e0e0;
   border-radius: 10px;
   padding: 20px;
+  margin-bottom: 12px;
   transition: all 0.3s ease;
 }
 
 .schedule-card.inactive {
-  opacity: 0.6;
 }
 
 .schedule-card:hover {

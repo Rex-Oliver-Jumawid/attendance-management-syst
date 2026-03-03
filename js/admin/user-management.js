@@ -113,14 +113,14 @@ class UserManagement {
               : user.role === "moderator"
                 ? `<button 
                   class="btn-toggle btn-small" 
-                  style="background-color: #393D7E; color: white; border: none; width: 80px; border-radius: 6px;"
+                  style="background-color: #FEC260; border: 2px solid black; width: 80px; border-radius: 6px;"
                   onclick="userManagement.demoteToMember('${user._id}')"
                 >
                   Demote
                 </button>`
                 : `<button 
                   class="btn-toggle btn-small" 
-                  style="background-color: #222222; color: white; border: none; width: 80px; border-radius: 6px;"
+                  style="background-color: #FF9898; border: 2px solid black; width: 80px; border-radius: 6px;"
                   onclick="userManagement.deleteUser('${user._id}')"
                 >
                   Delete

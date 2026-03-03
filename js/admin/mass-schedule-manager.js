@@ -2,6 +2,9 @@ class MassScheduleManager {
   constructor() {
     this.currentSchedule = null;
     this.activeTab = "active"; // Track current tab
+    this.isSubmitting = false; // Guard against double-submission
+    this.allExpiredSchedules = []; // Cache for filtering
+    this.expiredFilter = "today"; // Filter: 'all' | 'month' | 'today'
     console.log("MassScheduleManager initializing...");
     this.init();
   }
@@ -40,6 +43,23 @@ class MassScheduleManager {
         this.switchTab("expired");
       });
     }
+
+    // Expired schedule filter buttons
+    ["expiredFilterAll", "expiredFilterMonth", "expiredFilterToday"].forEach(
+      (id) => {
+        const btn = document.getElementById(id);
+        if (btn) {
+          btn.addEventListener("click", () => {
+            this.expiredFilter = btn.dataset.expiredFilter;
+            document
+              .querySelectorAll("[data-expired-filter]")
+              .forEach((b) => b.classList.remove("active"));
+            btn.classList.add("active");
+            this.filterAndDisplayExpired();
+          });
+        }
+      },
+    );
 
     console.log("Form found:", !!form);
     console.log("Cancel button found:", !!cancelBtn);
@@ -118,18 +138,50 @@ class MassScheduleManager {
       .classList.add("active");
 
     // Update tab content
+    const filterBar = document.getElementById("expiredFilterBar");
     if (tab === "active") {
       this.activeSchedulesList.style.display = "block";
       this.expiredSchedulesList.style.display = "none";
+      if (filterBar) filterBar.style.display = "none";
     } else {
       this.activeSchedulesList.style.display = "none";
       this.expiredSchedulesList.style.display = "block";
+      if (filterBar) filterBar.style.display = "flex";
     }
+  }
+
+  filterAndDisplayExpired() {
+    const now = new Date();
+    const todayStr = now.toISOString().slice(0, 10); // "YYYY-MM-DD"
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    let filtered = this.allExpiredSchedules;
+
+    if (this.expiredFilter === "today") {
+      filtered = this.allExpiredSchedules.filter((s) => {
+        if (!s.specificDate) return false;
+        return new Date(s.specificDate).toISOString().slice(0, 10) === todayStr;
+      });
+    } else if (this.expiredFilter === "month") {
+      filtered = this.allExpiredSchedules.filter((s) => {
+        if (!s.specificDate) return false;
+        const d = new Date(s.specificDate);
+        return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+      });
+    }
+
+    this.displaySchedules(filtered, this.expiredSchedulesList, true);
   }
 
   async handleSubmit(e) {
     e.preventDefault();
     console.log("=== HANDLING FORM SUBMIT ===");
+
+    if (this.isSubmitting) {
+      console.log("Submission already in progress, ignoring duplicate submit");
+      return;
+    }
 
     const scheduleType = document.getElementById("scheduleType").value;
     console.log("Schedule type:", scheduleType);
@@ -147,7 +199,7 @@ class MassScheduleManager {
 
     if (scheduleType === "recurring") {
       const checkedDays = Array.from(
-        document.querySelectorAll('input[name="dayOfWeek"]:checked')
+        document.querySelectorAll('input[name="dayOfWeek"]:checked'),
       ).map((cb) => parseInt(cb.value));
 
       console.log("Checked days:", checkedDays);
@@ -171,13 +223,22 @@ class MassScheduleManager {
 
     console.log("Final schedule data:", scheduleData);
 
+    const submitBtn = document.querySelector(
+      "#massScheduleForm button[type='submit']",
+    );
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Saving...";
+    }
+    this.isSubmitting = true;
+
     try {
       let response;
       if (this.currentSchedule) {
         console.log("Updating existing schedule:", this.currentSchedule._id);
         response = await api.updateMassSchedule(
           this.currentSchedule._id,
-          scheduleData
+          scheduleData,
         );
         showSuccess("Schedule updated successfully!");
       } else {
@@ -198,6 +259,13 @@ class MassScheduleManager {
     } catch (error) {
       console.error("Form submission error:", error);
       showError(error.message || "Failed to save schedule");
+      // Re-enable button on error so user can fix and retry
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Save Schedule";
+      }
+    } finally {
+      this.isSubmitting = false;
     }
   }
 
@@ -210,7 +278,7 @@ class MassScheduleManager {
         const now = new Date();
         const currentTime = `${String(now.getHours()).padStart(
           2,
-          "0"
+          "0",
         )}:${String(now.getMinutes()).padStart(2, "0")}`;
         const currentDay = now.getDay();
         const today = new Date();
@@ -255,11 +323,8 @@ class MassScheduleManager {
         });
 
         this.displaySchedules(activeSchedules, this.activeSchedulesList, false);
-        this.displaySchedules(
-          expiredSchedules,
-          this.expiredSchedulesList,
-          true
-        );
+        this.allExpiredSchedules = expiredSchedules;
+        this.filterAndDisplayExpired();
         this.loadAdminStats();
       }
     } catch (error) {
@@ -301,7 +366,7 @@ class MassScheduleManager {
     let scheduleInfo = "";
     if (schedule.scheduleType === "specific") {
       scheduleInfo = `<strong>Date:</strong> ${formatDateShort(
-        schedule.specificDate
+        schedule.specificDate,
       )}`;
     } else {
       const dayNames = schedule.dayOfWeek
@@ -326,8 +391,8 @@ class MassScheduleManager {
           <p><strong>Type:</strong> ${schedule.massType}</p>
           <p>${scheduleInfo}</p>
           <p><strong>Time:</strong> ${schedule.startTime} - ${
-      schedule.endTime
-    }</p>
+            schedule.endTime
+          }</p>
           <p><strong>Schedule Type:</strong> ${
             schedule.scheduleType === "recurring"
               ? "Weekly Recurring"
@@ -339,7 +404,7 @@ class MassScheduleManager {
             !isExpired
               ? `
             <button class="btn-edit" onclick="massScheduleManager.showForm(${JSON.stringify(
-              schedule
+              schedule,
             ).replace(/"/g, "&quot;")})">
               Edit
             </button>
@@ -390,7 +455,7 @@ class MassScheduleManager {
           .querySelectorAll('input[name="dayOfWeek"]')
           .forEach((checkbox) => {
             checkbox.checked = schedule.dayOfWeek.includes(
-              parseInt(checkbox.value)
+              parseInt(checkbox.value),
             );
           });
       } else {
@@ -418,6 +483,16 @@ class MassScheduleManager {
       form.reset();
     }
     this.currentSchedule = null;
+    this.isSubmitting = false;
+
+    // Restore submit button in case it was disabled by a previous submission
+    const submitBtn = document.querySelector(
+      "#massScheduleForm button[type='submit']",
+    );
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Save Schedule";
+    }
 
     const dayOfWeekGroup = document.getElementById("dayOfWeekGroup");
     const specificDateGroup = document.getElementById("specificDateGroup");
@@ -430,7 +505,7 @@ class MassScheduleManager {
     try {
       await api.updateMassSchedule(scheduleId, { isActive: !isActive });
       showSuccess(
-        `Schedule ${!isActive ? "activated" : "deactivated"} successfully!`
+        `Schedule ${!isActive ? "activated" : "deactivated"} successfully!`,
       );
       this.loadSchedules();
     } catch (error) {
@@ -441,7 +516,7 @@ class MassScheduleManager {
   async deleteSchedule(scheduleId) {
     if (
       !confirm(
-        "Are you sure you want to delete this schedule? This action cannot be undone."
+        "Are you sure you want to delete this schedule? This action cannot be undone.",
       )
     ) {
       return;
@@ -474,7 +549,7 @@ class MassScheduleManager {
           const now = new Date();
           const currentTime = `${String(now.getHours()).padStart(
             2,
-            "0"
+            "0",
           )}:${String(now.getMinutes()).padStart(2, "0")}`;
           const today = new Date();
           today.setHours(0, 0, 0, 0);
@@ -522,7 +597,7 @@ class MassScheduleManager {
   async sendAbsenceFollowUp(scheduleId) {
     if (
       !confirm(
-        "Send follow-up emails to members who didn't attend this schedule?"
+        "Send follow-up emails to members who didn't attend this schedule?",
       )
     ) {
       return;
@@ -535,7 +610,7 @@ class MassScheduleManager {
 
       if (result.success) {
         showSuccess(
-          `Email sent to ${result.absentCount} absent member(s). ${result.attendedCount} member(s) attended.`
+          `Email sent to ${result.absentCount} absent member(s). ${result.attendedCount} member(s) attended.`,
         );
       } else {
         showError(result.message || "Failed to send emails");
