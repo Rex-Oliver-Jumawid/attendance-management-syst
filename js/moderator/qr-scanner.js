@@ -310,9 +310,7 @@ class QRScanner {
             <h3 class="schedule-card-title">${schedule.name}</h3>
             <span class="schedule-card-badge">${schedule.massType}</span>
           </div>
-          <div class="schedule-card-time">${schedule.startTime} - ${
-            schedule.endTime
-          }</div>
+          <div class="schedule-card-time">${schedule.startTime} - ${schedule.endTime}</div>
           <div class="schedule-card-type">${
             schedule.scheduleType === "specific"
               ? `Specific: ${new Date(

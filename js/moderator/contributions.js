@@ -270,19 +270,19 @@ class ContributionsManager {
                         type="number" 
                         id="contrib-${a.userId}-${scheduleId}"
                         class="contribution-input"
-                        value="${a.contributionAmount || ""}"
+                        value="${a.contributionAmount != null ? a.contributionAmount : ""}"
                         placeholder="0.00"
                         min="0"
                         step="0.01"
                         style="width: 100px; padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px;"
-                        ${a.contributionAmount ? "readonly" : ""}
+                        ${a.contributionAmount != null ? "readonly" : ""}
                       />
                     </td>
                     <td style="padding: 8px;">
                       <button 
                         class="btn-primary btn-small"
                         style="padding: 4px 12px; font-size: 12px; background: ${
-                          a.contributionAmount
+                          a.contributionAmount != null
                             ? "rgb(108, 117, 125)"
                             : "#3d5a80"
                         };"
@@ -290,7 +290,7 @@ class ContributionsManager {
                           a.userId
                         }', '${scheduleId}', '${a.contributionId || ""}')"
                       >
-                        ${a.contributionAmount ? "Edit" : "Declare"}
+                        ${a.contributionAmount != null ? "Edit" : "Declare"}
                       </button>
                     </td>
                   </tr>
@@ -350,7 +350,7 @@ class ContributionsManager {
 
     const amount = parseFloat(input.value);
 
-    if (!amount || amount <= 0) {
+    if (isNaN(amount) || amount < 0) {
       showError("Please enter a valid contribution amount");
       return;
     }

@@ -191,12 +191,34 @@ class MassScheduleManager {
     const scheduleType = document.getElementById("scheduleType").value;
     console.log("Schedule type:", scheduleType);
 
+    const name = document.getElementById("scheduleName").value.trim();
+    const massType = document.getElementById("massType").value;
+    const startTime = document.getElementById("startTime").value;
+    const endTime = document.getElementById("endTime").value;
+
+    if (!name) {
+      showError("Schedule name is required");
+      return;
+    }
+    if (!massType) {
+      showError("Please select a mass type");
+      return;
+    }
+    if (!startTime) {
+      showError("Start time is required");
+      return;
+    }
+    if (!endTime) {
+      showError("End time is required");
+      return;
+    }
+
     const scheduleData = {
-      name: document.getElementById("scheduleName").value,
-      massType: document.getElementById("massType").value,
+      name,
+      massType,
       scheduleType: scheduleType,
-      startTime: document.getElementById("startTime").value,
-      endTime: document.getElementById("endTime").value,
+      startTime,
+      endTime,
       isActive: true, // Always active by default
     };
 

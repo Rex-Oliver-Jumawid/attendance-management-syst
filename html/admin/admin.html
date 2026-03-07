@@ -56,7 +56,7 @@
             <img
               src="../../images/icons/address-book.png"
               class="nav-link-img"
-            />Members
+            />Users
           </a>
           <a href="#moderators-section" class="nav-link">
             <img
@@ -147,7 +147,7 @@
         <div id="scheduleForm" style="display: none">
           <div class="form-container" id="scheduleFormContainer">
             <h3 id="formTitle">Create New Mass Schedule</h3>
-            <form id="massScheduleForm">
+            <form id="massScheduleForm" novalidate>
               <input type="hidden" id="scheduleId" />
 
               <div class="form-group">
@@ -422,7 +422,7 @@
           style="margin-bottom: 30px"
         >
           <h3>Create New Moderator Account</h3>
-          <form id="createModeratorForm">
+          <form id="createModeratorForm" novalidate>
             <div class="form-row">
               <div class="form-group">
                 <label for="modFirstName">First Name *</label>
@@ -501,7 +501,7 @@
           style="margin-bottom: 30px; display: none"
         >
           <h3>Assign Existing Member as Moderator</h3>
-          <form id="assignModeratorForm">
+          <form id="assignModeratorForm" novalidate>
             <div class="form-group">
               <label for="userToAssign">Select Member *</label>
               <select id="userToAssign" required>
