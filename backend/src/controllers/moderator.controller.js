@@ -375,10 +375,25 @@ exports.addContribution = async (req, res) => {
     const { userId, scheduleId, amount, notes } = req.body;
     const moderatorId = req.user.id;
 
-    if (!userId || !scheduleId || !amount) {
+    if (
+      !userId ||
+      !scheduleId ||
+      amount === undefined ||
+      amount === null ||
+      amount === ""
+    ) {
       return res.status(400).json({
         success: false,
         message: "User, schedule, and amount are required",
+      });
+    }
+
+    // Amount of 0 means no contribution — skip saving and return success
+    if (Number(amount) === 0) {
+      return res.status(200).json({
+        success: true,
+        message: "No contribution recorded (amount is zero)",
+        data: null,
       });
     }
 
@@ -435,10 +450,26 @@ exports.updateContribution = async (req, res) => {
     const contributionId = req.params.id;
     const { amount, notes } = req.body;
 
-    if (!amount || amount <= 0) {
+    if (
+      amount === undefined ||
+      amount === null ||
+      amount === "" ||
+      isNaN(amount) ||
+      amount < 0
+    ) {
       return res.status(400).json({
         success: false,
         message: "A valid amount is required",
+      });
+    }
+
+    // Treat amount of 0 as "clear contribution" — delete the record
+    if (Number(amount) === 0) {
+      await Contribution.findByIdAndDelete(contributionId);
+      return res.status(200).json({
+        success: true,
+        message: "Contribution cleared",
+        data: null,
       });
     }
 

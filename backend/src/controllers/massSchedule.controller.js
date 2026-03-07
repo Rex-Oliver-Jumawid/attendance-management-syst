@@ -265,19 +265,22 @@ exports.deleteSchedule = async (req, res) => {
       });
     }
 
-    // Block deletion if contributions exist for this schedule
-    const contributionCount = await Contribution.countDocuments({
+    // Block deletion if any contribution with amount > 0 exists for this schedule
+    const paidContributionCount = await Contribution.countDocuments({
       scheduleId: id,
+      amount: { $gt: 0 },
     });
 
-    if (contributionCount > 0) {
+    if (paidContributionCount > 0) {
       return res.status(400).json({
         success: false,
-        message: `Cannot delete this schedule — it has ${contributionCount} contribution record${contributionCount > 1 ? "s" : ""} associated with it. Delete the contributions first.`,
+        message: `Cannot delete this schedule — it has ${paidContributionCount} contribution record${paidContributionCount > 1 ? "s" : ""} with a paid amount. Clear all contributions first.`,
       });
     }
 
-    // Delete all attendance records associated with this schedule
+    // Safe to delete — remove any zero-amount contributions and attendance records
+    await Contribution.deleteMany({ scheduleId: id });
+
     const deletedRecords = await AttendanceRecord.deleteMany({
       scheduleId: id,
     });
