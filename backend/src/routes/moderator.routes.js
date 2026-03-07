@@ -13,6 +13,7 @@ const {
   getAllContributions,
   addExpense,
   getAllExpenses,
+  deleteExpense,
   getAvailableBalance,
   getScheduleAttendees,
 } = require("../controllers/moderator.controller");
@@ -42,6 +43,7 @@ router.put("/contributions/:id", updateContribution);
 router.get("/contributions", getAllContributions);
 router.post("/expenses", addExpense);
 router.get("/expenses", getAllExpenses);
+router.delete("/expenses/:id", deleteExpense);
 router.get("/balance", getAvailableBalance);
 
 // Schedule attendees

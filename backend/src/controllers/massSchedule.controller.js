@@ -1,6 +1,7 @@
 const MassSchedule = require("../models/MassSchedule");
 const User = require("../models/User");
 const AttendanceRecord = require("../models/AttendanceRecord");
+const Contribution = require("../models/Contribution");
 const emailService = require("../services/email.service");
 
 // @desc    Create mass schedule
@@ -69,12 +70,20 @@ exports.createSchedule = async (req, res) => {
 
     // Send email notification to all members (not admins or moderators)
     try {
-      // Get admin info for sending email
-      const admin = await User.findById(adminId).select(
+      // Get the creator's info first; fall back to any admin with emailPassword
+      let sender = await User.findById(adminId).select(
         "firstName lastName email emailPassword",
       );
 
-      if (admin && admin.email && admin.emailPassword) {
+      if (!sender || !sender.emailPassword) {
+        sender = await User.findOne({
+          role: "admin",
+          isActive: true,
+          emailPassword: { $exists: true, $nin: [null, ""] },
+        }).select("firstName lastName email emailPassword");
+      }
+
+      if (sender && sender.email && sender.emailPassword) {
         const members = await User.find({
           role: "member",
           isActive: true,
@@ -86,13 +95,13 @@ exports.createSchedule = async (req, res) => {
 
         if (memberEmails.length > 0) {
           console.log(
-            `Sending schedule announcement to ${memberEmails.length} members from ${admin.email}...`,
+            `Sending schedule announcement to ${memberEmails.length} members from ${sender.email}...`,
           );
 
           const adminInfo = {
-            name: `${admin.firstName} ${admin.lastName}`,
-            email: admin.email,
-            password: admin.emailPassword,
+            name: `${sender.firstName} ${sender.lastName}`,
+            email: sender.email,
+            password: sender.emailPassword,
           };
 
           await emailService.sendScheduleAnnouncement(
@@ -102,7 +111,9 @@ exports.createSchedule = async (req, res) => {
           );
         }
       } else {
-        console.log("Admin email not configured - skipping email notification");
+        console.log(
+          "No admin has email configured - skipping email notification. Set a Gmail App Password in Admin Profile settings.",
+        );
       }
     } catch (emailError) {
       // Log error but don't fail the schedule creation
@@ -254,6 +265,18 @@ exports.deleteSchedule = async (req, res) => {
       });
     }
 
+    // Block deletion if contributions exist for this schedule
+    const contributionCount = await Contribution.countDocuments({
+      scheduleId: id,
+    });
+
+    if (contributionCount > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot delete this schedule — it has ${contributionCount} contribution record${contributionCount > 1 ? "s" : ""} associated with it. Delete the contributions first.`,
+      });
+    }
+
     // Delete all attendance records associated with this schedule
     const deletedRecords = await AttendanceRecord.deleteMany({
       scheduleId: id,
@@ -333,23 +356,31 @@ exports.sendAbsenceFollowUp = async (req, res) => {
       .map((member) => member.email)
       .filter(Boolean);
 
-    // Get admin info for sending email
-    const admin = await User.findById(adminId).select(
+    // Get sender info — try current user first, then fall back to any admin with emailPassword
+    let sender = await User.findById(adminId).select(
       "firstName lastName email emailPassword",
     );
 
-    if (!admin || !admin.email || !admin.emailPassword) {
+    if (!sender || !sender.emailPassword) {
+      sender = await User.findOne({
+        role: "admin",
+        isActive: true,
+        emailPassword: { $exists: true, $nin: [null, ""] },
+      }).select("firstName lastName email emailPassword");
+    }
+
+    if (!sender || !sender.email || !sender.emailPassword) {
       return res.status(400).json({
         success: false,
         message:
-          "Admin email not configured. Please set up your Gmail App Password in Profile settings.",
+          "No email configured. An admin must set up a Gmail App Password in Profile settings before emails can be sent.",
       });
     }
 
     const adminInfo = {
-      name: `${admin.firstName} ${admin.lastName}`,
-      email: admin.email,
-      password: admin.emailPassword,
+      name: `${sender.firstName} ${sender.lastName}`,
+      email: sender.email,
+      password: sender.emailPassword,
     };
 
     // Send the absence follow-up emails

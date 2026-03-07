@@ -152,16 +152,21 @@ class MassScheduleManager {
 
   filterAndDisplayExpired() {
     const now = new Date();
-    const todayStr = now.toISOString().slice(0, 10); // "YYYY-MM-DD"
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
+    const currentDate = now.getDate();
 
     let filtered = this.allExpiredSchedules;
 
     if (this.expiredFilter === "today") {
       filtered = this.allExpiredSchedules.filter((s) => {
         if (!s.specificDate) return false;
-        return new Date(s.specificDate).toISOString().slice(0, 10) === todayStr;
+        const d = new Date(s.specificDate);
+        return (
+          d.getFullYear() === currentYear &&
+          d.getMonth() === currentMonth &&
+          d.getDate() === currentDate
+        );
       });
     } else if (this.expiredFilter === "month") {
       filtered = this.allExpiredSchedules.filter((s) => {

@@ -54,6 +54,23 @@ async function loadExpenses() {
 function setupExpenseForm() {
   const form = document.getElementById("addExpenseForm");
 
+  // Real-time validation on the amount input
+  const amountInput = document.getElementById("expenseAmount");
+  if (amountInput) {
+    amountInput.addEventListener("input", () => {
+      const val = parseFloat(amountInput.value);
+      if (!isNaN(val) && val > availableBalance) {
+        amountInput.setCustomValidity(
+          `Amount exceeds available balance (₱${availableBalance.toFixed(2)})`,
+        );
+        amountInput.style.borderColor = "#e74c3c";
+      } else {
+        amountInput.setCustomValidity("");
+        amountInput.style.borderColor = "";
+      }
+    });
+  }
+
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
 
@@ -169,11 +186,28 @@ function renderExpensesTable(expenses) {
       <td>${expense.category}</td>
       <td>₱${expense.amount.toFixed(2)}</td>
       <td>${getMonthName(expense.month)} ${expense.year}</td>
-      <td>${expense.recordedBy.firstName} ${expense.recordedBy.lastName}</td>
+      <td>${expense.recordedBy ? `${expense.recordedBy.firstName} ${expense.recordedBy.lastName}` : "Deleted User"}</td>
+      <td>
+        <button onclick="deleteExpense('${expense._id}')" style="background:#e74c3c;color:white;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;">Delete</button>
+      </td>
     </tr>
   `,
     )
     .join("");
+}
+
+// Delete an expense
+async function deleteExpense(id) {
+  if (!confirm("Are you sure you want to delete this expense?")) return;
+
+  try {
+    await api.deleteExpense(id);
+    showSuccess("Expense deleted successfully!");
+    await loadAvailableBalance();
+    await loadExpenses();
+  } catch (error) {
+    showError(error.message || "Failed to delete expense");
+  }
 }
 
 // Get month name

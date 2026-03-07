@@ -296,22 +296,24 @@ function renderContributionsTable(contributions) {
     .map((contrib) => {
       const scheduleName = contrib.scheduleId
         ? contrib.scheduleId.scheduleType === "recurring"
-          ? `${
-              contrib.scheduleId.massType
-            } - ${contrib.scheduleId.dayOfWeek.join(", ")}`
-          : `${contrib.scheduleId.massType} - ${formatDate(
-              contrib.scheduleId.specificDate,
-            )}`
+          ? `${contrib.scheduleId.massType} - ${contrib.scheduleId.dayOfWeek.join(", ")}`
+          : `${contrib.scheduleId.massType} - ${formatDate(contrib.scheduleId.specificDate)}`
         : "N/A";
+
+      const memberName = contrib.userId
+        ? `${contrib.userId.firstName} ${contrib.userId.lastName}`
+        : "Deleted Member";
+      const recorderName = contrib.recordedBy
+        ? `${contrib.recordedBy.firstName} ${contrib.recordedBy.lastName}`
+        : "Deleted User";
 
       return `
       <tr>
         <td>${formatDate(contrib.date)}</td>
-        <td>${contrib.userId.firstName} ${contrib.userId.lastName}</td>
+        <td>${memberName}</td>
         <td>${scheduleName}</td>
         <td>₱${contrib.amount.toFixed(2)}</td>
-        <td>${contrib.recordedBy.firstName} ${contrib.recordedBy.lastName}</td>
-
+        <td>${recorderName}</td>
       </tr>
     `;
     })
@@ -332,19 +334,37 @@ function renderExpensesTable(expenses) {
   }
 
   tbody.innerHTML = expenses
-    .map(
-      (expense) => `
+    .map((expense) => {
+      const recorderName = expense.recordedBy
+        ? `${expense.recordedBy.firstName} ${expense.recordedBy.lastName}`
+        : "Deleted User";
+      return `
     <tr>
       <td>${formatDate(expense.date)}</td>
       <td>${expense.description}</td>
       <td>${expense.category}</td>
       <td>₱${expense.amount.toFixed(2)}</td>
       <td>${getMonthName(expense.month)} ${expense.year}</td>
-      <td>${expense.recordedBy.firstName} ${expense.recordedBy.lastName}</td>
+      <td>${recorderName}</td>
+      <td>
+        <button onclick="adminDeleteExpense('${expense._id}')" style="background:#2C2C2C;color:white;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;">Delete</button>
+      </td>
     </tr>
-  `,
-    )
+  `;
+    })
     .join("");
+}
+
+// Delete an expense (admin)
+async function adminDeleteExpense(id) {
+  if (!confirm("Are you sure you want to delete this expense?")) return;
+
+  try {
+    await api.deleteExpense(id);
+    await loadFinanceData();
+  } catch (error) {
+    showError(error.message || "Failed to delete expense");
+  }
 }
 
 // Get month name

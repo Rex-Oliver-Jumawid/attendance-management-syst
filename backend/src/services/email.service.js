@@ -45,7 +45,7 @@ const formatScheduleInfo = (schedule) => {
 exports.sendScheduleAnnouncement = async (
   schedule,
   memberEmails,
-  adminInfo
+  adminInfo,
 ) => {
   try {
     if (!adminInfo || !adminInfo.email || !adminInfo.password) {
@@ -131,7 +131,7 @@ exports.sendScheduleAnnouncement = async (
     const info = await transporter.sendMail(mailOptions);
     console.log("Email sent successfully:", info.messageId);
     console.log(
-      `Notified ${memberEmails.length} members about new schedule: ${schedule.name}`
+      `Notified ${memberEmails.length} members about new schedule: ${schedule.name}`,
     );
 
     return {
@@ -153,7 +153,7 @@ exports.sendScheduleAnnouncement = async (
 exports.sendAbsenceFollowUp = async (
   schedule,
   absentMemberEmails,
-  adminInfo
+  adminInfo,
 ) => {
   try {
     if (!adminInfo || !adminInfo.email || !adminInfo.password) {
@@ -246,7 +246,7 @@ exports.sendAbsenceFollowUp = async (
     const info = await transporter.sendMail(mailOptions);
     console.log("Absence follow-up email sent:", info.messageId);
     console.log(
-      `Notified ${absentMemberEmails.length} absent members for: ${schedule.name}`
+      `Notified ${absentMemberEmails.length} absent members for: ${schedule.name}`,
     );
 
     return {

@@ -485,10 +485,15 @@ exports.getAllContributions = async (req, res) => {
       .populate("recordedBy", "firstName lastName")
       .sort({ date: -1 });
 
+    // Filter out records where referenced documents have been deleted
+    const valid = contributions.filter(
+      (c) => c.userId && c.scheduleId && c.recordedBy,
+    );
+
     res.status(200).json({
       success: true,
-      count: contributions.length,
-      data: contributions,
+      count: valid.length,
+      data: valid,
     });
   } catch (error) {
     console.error("Get contributions error:", error);
@@ -512,6 +517,27 @@ exports.addExpense = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Amount and category are required",
+      });
+    }
+
+    // Check amount does not exceed available balance
+    const Contribution = require("../models/Contribution");
+    const contributions = await Contribution.find();
+    const existingExpenses = await Expense.find();
+    const totalContributions = contributions.reduce(
+      (sum, c) => sum + c.amount,
+      0,
+    );
+    const totalExpenses = existingExpenses.reduce(
+      (sum, e) => sum + e.amount,
+      0,
+    );
+    const availableBalance = totalContributions - totalExpenses;
+
+    if (parseFloat(amount) > availableBalance) {
+      return res.status(400).json({
+        success: false,
+        message: `Expense amount (₱${parseFloat(amount).toFixed(2)}) exceeds available balance (₱${availableBalance.toFixed(2)})`,
       });
     }
 
@@ -559,16 +585,51 @@ exports.getAllExpenses = async (req, res) => {
       .populate("recordedBy", "firstName lastName")
       .sort({ date: -1 });
 
+    // Filter out records where the moderator who recorded them has been deleted
+    const valid = expenses.filter((e) => e.recordedBy);
+
     res.status(200).json({
       success: true,
-      count: expenses.length,
-      data: expenses,
+      count: valid.length,
+      data: valid,
     });
   } catch (error) {
     console.error("Get expenses error:", error);
     res.status(500).json({
       success: false,
       message: "Error fetching expenses",
+      error: error.message,
+    });
+  }
+};
+
+// @desc    Delete an expense
+// @route   DELETE /api/moderator/expenses/:id
+// @access  Private (Moderator)
+exports.deleteExpense = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const expense = await Expense.findById(id);
+
+    if (!expense) {
+      return res.status(404).json({
+        success: false,
+        message: "Expense not found",
+      });
+    }
+
+    await expense.deleteOne();
+
+    res.status(200).json({
+      success: true,
+      message: "Expense deleted successfully",
+    });
+  } catch (error) {
+    console.error("Delete expense error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error deleting expense",
       error: error.message,
     });
   }
@@ -581,14 +642,23 @@ exports.getAvailableBalance = async (req, res) => {
   try {
     const Contribution = require("../models/Contribution");
 
-    const contributions = await Contribution.find();
-    const expenses = await Expense.find();
+    const contributions = await Contribution.find()
+      .populate("userId", "_id")
+      .populate("scheduleId", "_id")
+      .populate("recordedBy", "_id");
+    const expenses = await Expense.find().populate("recordedBy", "_id");
 
-    const totalContributions = contributions.reduce(
+    // Only count contributions/expenses whose references still exist
+    const validContributions = contributions.filter(
+      (c) => c.userId && c.scheduleId && c.recordedBy,
+    );
+    const validExpenses = expenses.filter((e) => e.recordedBy);
+
+    const totalContributions = validContributions.reduce(
       (sum, c) => sum + c.amount,
       0,
     );
-    const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+    const totalExpenses = validExpenses.reduce((sum, e) => sum + e.amount, 0);
     const availableBalance = totalContributions - totalExpenses;
 
     res.status(200).json({

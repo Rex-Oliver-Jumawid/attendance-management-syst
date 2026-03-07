@@ -201,6 +201,10 @@ class API {
     return this.get(API_CONFIG.ENDPOINTS.MODERATOR_EXPENSES);
   }
 
+  async deleteExpense(id) {
+    return this.delete(`/moderator/expenses/${id}`);
+  }
+
   async getAvailableBalance() {
     return this.get("/moderator/balance");
   }
