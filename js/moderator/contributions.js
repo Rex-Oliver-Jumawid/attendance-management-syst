@@ -359,6 +359,29 @@ class ContributionsManager {
       let response;
 
       if (existingContributionId) {
+        // Pre-check: verify balance won't go negative
+        try {
+          const balanceResp = await api.getAvailableBalance();
+          if (balanceResp.success) {
+            const currentContrib = this.scheduleData
+              ?.flatMap((s) => s.attendees)
+              ?.find((a) => a.contributionId === existingContributionId);
+            const oldAmount = currentContrib
+              ? currentContrib.contributionAmount
+              : 0;
+            const diff = amount - oldAmount;
+            const projectedBalance = balanceResp.data.availableBalance + diff;
+            if (projectedBalance < 0) {
+              showError(
+                `Cannot update: this would result in a negative balance (₱${projectedBalance.toFixed(2)}).`,
+              );
+              return;
+            }
+          }
+        } catch (balErr) {
+          console.warn("Could not pre-check balance:", balErr);
+        }
+
         // Update existing contribution
         response = await api.updateContribution(existingContributionId, {
           amount: amount,

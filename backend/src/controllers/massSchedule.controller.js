@@ -48,6 +48,42 @@ exports.createSchedule = async (req, res) => {
       });
     }
 
+    // Validate end time is after start time
+    if (endTime <= startTime) {
+      return res.status(400).json({
+        success: false,
+        message: "End time must be later than start time",
+      });
+    }
+
+    // Validate specific date is not in the past
+    if (scheduleType === "specific" && specificDate) {
+      const now = new Date();
+      const selected = new Date(specificDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      selected.setHours(0, 0, 0, 0);
+
+      if (selected < today) {
+        return res.status(400).json({
+          success: false,
+          message: "Cannot create a schedule for a past date",
+        });
+      }
+
+      // If the date is today, check if start time has already passed
+      if (selected.getTime() === today.getTime()) {
+        const currentTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+        if (startTime <= currentTime) {
+          return res.status(400).json({
+            success: false,
+            message:
+              "Cannot create a schedule for a time that has already passed today",
+          });
+        }
+      }
+    }
+
     const scheduleData = {
       name,
       massType,
@@ -74,6 +110,9 @@ exports.createSchedule = async (req, res) => {
       let sender = await User.findById(adminId).select(
         "firstName lastName email emailPassword",
       );
+      console.log(
+        `[Email Debug] Creator (${adminId}): email=${sender?.email}, hasPassword=${!!sender?.emailPassword}`,
+      );
 
       if (!sender || !sender.emailPassword) {
         sender = await User.findOne({
@@ -81,6 +120,9 @@ exports.createSchedule = async (req, res) => {
           isActive: true,
           emailPassword: { $exists: true, $nin: [null, ""] },
         }).select("firstName lastName email emailPassword");
+        console.log(
+          `[Email Debug] Fallback admin: email=${sender?.email}, hasPassword=${!!sender?.emailPassword}`,
+        );
       }
 
       if (sender && sender.email && sender.emailPassword) {
@@ -93,6 +135,10 @@ exports.createSchedule = async (req, res) => {
           .map((member) => member.email)
           .filter(Boolean);
 
+        console.log(
+          `[Email Debug] Found ${members.length} members, ${memberEmails.length} with emails`,
+        );
+
         if (memberEmails.length > 0) {
           console.log(
             `Sending schedule announcement to ${memberEmails.length} members from ${sender.email}...`,
@@ -104,20 +150,27 @@ exports.createSchedule = async (req, res) => {
             password: sender.emailPassword,
           };
 
-          await emailService.sendScheduleAnnouncement(
+          const emailResult = await emailService.sendScheduleAnnouncement(
             schedule,
             memberEmails,
             adminInfo,
           );
+          console.log("[Email Debug] Email result:", emailResult);
+        } else {
+          console.log("[Email Debug] No member emails found — skipping");
         }
       } else {
         console.log(
-          "No admin has email configured - skipping email notification. Set a Gmail App Password in Admin Profile settings.",
+          "[Email Debug] No admin has email configured - skipping email notification. Set a Gmail App Password in Admin Profile settings.",
         );
       }
     } catch (emailError) {
       // Log error but don't fail the schedule creation
-      console.error("Failed to send email notifications:", emailError.message);
+      console.error(
+        "[Email Debug] Failed to send email notifications:",
+        emailError.message,
+      );
+      console.error("[Email Debug] Full error:", emailError);
     }
 
     res.status(201).json({

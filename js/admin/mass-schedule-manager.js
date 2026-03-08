@@ -213,6 +213,12 @@ class MassScheduleManager {
       return;
     }
 
+    // Validate end time is after start time
+    if (endTime <= startTime) {
+      showError("End time must be later than start time");
+      return;
+    }
+
     const scheduleData = {
       name,
       massType,
@@ -244,6 +250,30 @@ class MassScheduleManager {
         showError("Please select a specific date");
         return;
       }
+
+      // Validate specific date is not in the past
+      const now = new Date();
+      const selectedDate = new Date(specificDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      selectedDate.setHours(0, 0, 0, 0);
+
+      if (selectedDate < today) {
+        showError("Cannot create a schedule for a past date");
+        return;
+      }
+
+      // If the date is today, check if start time has already passed
+      if (selectedDate.getTime() === today.getTime()) {
+        const currentTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+        if (startTime <= currentTime) {
+          showError(
+            "Cannot create a schedule for a time that has already passed today",
+          );
+          return;
+        }
+      }
+
       scheduleData.specificDate = specificDate;
       scheduleData.dayOfWeek = []; // Empty array for specific dates
     }

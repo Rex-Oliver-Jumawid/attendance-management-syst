@@ -22,12 +22,22 @@ function setupUserRegistrationForm() {
     submitBtn.textContent = "Registering...";
 
     try {
+      const phoneRaw = document.getElementById("regPhone").value.trim();
+
+      if (phoneRaw && !/^(\+63|0)9\d{9}$/.test(phoneRaw)) {
+        showError(
+          "Invalid phone number. Use format 09XXXXXXXXX or +639XXXXXXXXX.",
+        );
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalBtnText;
+        return;
+      }
+
       const userData = {
         firstName: document.getElementById("regFirstName").value.trim(),
         lastName: document.getElementById("regLastName").value.trim(),
         email: document.getElementById("regEmail").value.trim(),
-        phoneNumber:
-          document.getElementById("regPhone").value.trim() || undefined,
+        phoneNumber: phoneRaw || undefined,
       };
 
       await api.registerUser(userData);

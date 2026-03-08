@@ -246,6 +246,15 @@ exports.registerUser = async (req, res) => {
       });
     }
 
+    // Validate phone number format if provided
+    if (phoneNumber && !/^(\+63|0)9\d{9}$/.test(phoneNumber)) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Invalid phone number. Use format 09XXXXXXXXX or +639XXXXXXXXX.",
+      });
+    }
+
     // Check if user exists by email
     const existingUser = await User.findOne({ email });
 
@@ -463,8 +472,32 @@ exports.updateContribution = async (req, res) => {
       });
     }
 
-    // Treat amount of 0 as "clear contribution" — delete the record
+    // Treat amount of 0 as "clear contribution" — but check balance first
     if (Number(amount) === 0) {
+      const existingContrib = await Contribution.findById(contributionId);
+      if (existingContrib) {
+        const allExpenses = await Expense.find();
+        const allContributions = await Contribution.find();
+        const totalContributions = allContributions.reduce(
+          (sum, c) => sum + Number(c.amount),
+          0,
+        );
+        const totalExpenses = allExpenses.reduce(
+          (sum, e) => sum + Number(e.amount),
+          0,
+        );
+        const newBalance =
+          totalContributions - Number(existingContrib.amount) - totalExpenses;
+        console.log(
+          `[Balance Check - Clear] totalContributions=${totalContributions}, clearing=${Number(existingContrib.amount)}, totalExpenses=${totalExpenses}, newBalance=${newBalance}`,
+        );
+        if (newBalance < 0) {
+          return res.status(400).json({
+            success: false,
+            message: `Cannot clear: this would result in a negative balance (₱${newBalance.toFixed(2)}). Current expenses exceed the remaining total contributions.`,
+          });
+        }
+      }
       await Contribution.findByIdAndDelete(contributionId);
       return res.status(200).json({
         success: true,
@@ -479,6 +512,32 @@ exports.updateContribution = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: "Contribution not found",
+      });
+    }
+
+    // Check the new amount won't make the available balance negative
+    const allContributions = await Contribution.find();
+    const allExpenses = await Expense.find();
+    const totalContributions = allContributions.reduce(
+      (sum, c) => sum + Number(c.amount),
+      0,
+    );
+    const totalExpenses = allExpenses.reduce(
+      (sum, e) => sum + Number(e.amount),
+      0,
+    );
+    const oldAmount = Number(contribution.amount);
+    const newAmount = Number(amount);
+    // Available balance after replacing the old contribution amount with the new one
+    const newBalance =
+      totalContributions - oldAmount + newAmount - totalExpenses;
+    console.log(
+      `[Balance Check] totalContributions=${totalContributions}, oldAmount=${oldAmount}, newAmount=${newAmount}, totalExpenses=${totalExpenses}, newBalance=${newBalance}`,
+    );
+    if (newBalance < 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot update: this would result in a negative balance (₱${newBalance.toFixed(2)}). Current expenses exceed the new total contributions.`,
       });
     }
 

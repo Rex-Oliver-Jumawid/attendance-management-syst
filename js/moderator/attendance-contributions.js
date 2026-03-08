@@ -13,7 +13,7 @@ class AttendanceContributionsManager {
 
   initElements() {
     this.scheduleAttendanceDisplay = document.getElementById(
-      "scheduleAttendanceDisplay"
+      "scheduleAttendanceDisplay",
     );
     this.refreshBtn = document.getElementById("refreshAttendanceBtn");
   }
@@ -94,9 +94,8 @@ class AttendanceContributionsManager {
       });
     }
 
-    document.getElementById(
-      "attendanceTotalContributions"
-    ).textContent = `₱${totalContributions.toFixed(2)}`;
+    document.getElementById("attendanceTotalContributions").textContent =
+      `₱${totalContributions.toFixed(2)}`;
   }
 
   displayScheduleAttendance(scheduleBreakdown) {
@@ -161,14 +160,14 @@ class AttendanceContributionsManager {
                         onclick="attendanceContributionsManager.handleContribution('${
                           a.userId
                         }', '${schedule.scheduleId}', '${
-                      a.contributionId || ""
-                    }')"
+                          a.contributionId || ""
+                        }')"
                       >
                         ${a.contributionAmount ? "Edit" : "Declare"}
                       </button>
                     </td>
                   </tr>
-                `
+                `,
                   )
                   .join("")}
               </tbody>
@@ -190,8 +189,8 @@ class AttendanceContributionsManager {
           <div style="display: flex; gap: 10px; align-items: center;">
             <span style="background: #3d5a80; color: white; padding: 8px 16px; border-radius: 20px; font-weight: 600;">
               ${schedule.attendanceCount} Attendance${
-      schedule.attendanceCount !== 1 ? "s" : ""
-    }
+                schedule.attendanceCount !== 1 ? "s" : ""
+              }
             </span>
             <button 
               class="btn-primary" 
@@ -206,8 +205,8 @@ class AttendanceContributionsManager {
         </div>
         <div class="schedule-body">
           <p><strong>Time:</strong> ${schedule.startTime} - ${
-      schedule.endTime
-    }</p>
+            schedule.endTime
+          }</p>
           ${attendeesHtml}
         </div>
       </div>
@@ -238,17 +237,50 @@ class AttendanceContributionsManager {
     }
 
     try {
-      const data = {
-        userId: userId,
-        scheduleId: scheduleId,
-        amount: amount,
-        notes: `Declared by moderator on ${new Date().toLocaleDateString()}`,
-      };
+      let response;
 
-      const response = await api.addContribution(data);
+      if (existingContributionId) {
+        // Pre-check: verify balance won't go negative
+        try {
+          const balanceResp = await api.getAvailableBalance();
+          if (balanceResp.success) {
+            const currentInput = document.getElementById(inputId);
+            const oldAmount = parseFloat(currentInput.defaultValue) || 0;
+            const diff = amount - oldAmount;
+            const projectedBalance = balanceResp.data.availableBalance + diff;
+            if (projectedBalance < 0) {
+              showError(
+                `Cannot update: this would result in a negative balance (₱${projectedBalance.toFixed(2)}).`,
+              );
+              return;
+            }
+          }
+        } catch (balErr) {
+          console.warn("Could not pre-check balance:", balErr);
+        }
+
+        // Update existing contribution — goes through balance check on the backend
+        response = await api.updateContribution(existingContributionId, {
+          amount: amount,
+          notes: `Updated by moderator on ${new Date().toLocaleDateString()}`,
+        });
+      } else {
+        // Create new contribution
+        const data = {
+          userId: userId,
+          scheduleId: scheduleId,
+          amount: amount,
+          notes: `Declared by moderator on ${new Date().toLocaleDateString()}`,
+        };
+        response = await api.addContribution(data);
+      }
 
       if (response.success) {
-        showSuccess("Contribution recorded successfully!");
+        showSuccess(
+          existingContributionId
+            ? "Contribution updated successfully"
+            : "Contribution recorded successfully!",
+        );
         input.setAttribute("readonly", true);
         button.textContent = "Edit";
         button.style.background = "#3d5a80";
@@ -258,14 +290,14 @@ class AttendanceContributionsManager {
       }
     } catch (error) {
       console.error("Error recording contribution:", error);
-      showError("Failed to record contribution: " + error.message);
+      showError(error.message || "Failed to record contribution");
     }
   }
 
   async sendAbsenceFollowUp(scheduleId) {
     if (
       !confirm(
-        "Send follow-up emails to members who didn't attend this schedule?"
+        "Send follow-up emails to members who didn't attend this schedule?",
       )
     ) {
       return;
@@ -281,14 +313,14 @@ class AttendanceContributionsManager {
             Authorization: `Bearer ${localStorage.getItem(STORAGE_KEYS.TOKEN)}`,
             "Content-Type": "application/json",
           },
-        }
+        },
       ).then((res) => res.json());
 
       hideLoading();
 
       if (result.success) {
         showSuccess(
-          `Email sent to ${result.absentCount} absent member(s). ${result.attendedCount} member(s) attended.`
+          `Email sent to ${result.absentCount} absent member(s). ${result.attendedCount} member(s) attended.`,
         );
       } else {
         showError(result.message || "Failed to send emails");
